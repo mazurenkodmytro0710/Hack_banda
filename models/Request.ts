@@ -29,7 +29,7 @@ const RequestSchema = new Schema<RequestDoc>({
     enum: ["transport", "shopping", "stairs", "medical", "other"],
     required: true,
   },
-  urgency: { type: String, enum: ["low", "medium", "high"], default: "medium" },
+  urgency: { type: String, enum: ["low", "medium", "high", "critical"], default: "medium" },
   status: {
     type: String,
     enum: ["pending", "in_progress", "completed", "cancelled"],

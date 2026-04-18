@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import { HelpRequest } from "@/models/Request";
 import { User } from "@/models/User";
 import { ChatContainer } from "@/components/Chat/ChatContainer";
+import { PhoneCallButton } from "@/components/Chat/PhoneCallButton";
 import { isLocale } from "@/lib/i18n/locale";
 import { DICTIONARIES } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/types";
@@ -56,12 +57,49 @@ export default async function LocalizedChatPage({
   }
 
   const partnerId = session.sub === requesterId ? helperId : requesterId;
-  const partner = await User.findById(partnerId).select("_id name").lean();
+  const isCurrentUserRequester = session.sub === requesterId;
+
+  const [partner, currentUser, requester] = await Promise.all([
+    User.findById(partnerId).select("_id name is_blind accessibility_notes").lean(),
+    User.findById(session.sub).select("_id is_blind accessibility_notes").lean(),
+    isCurrentUserRequester
+      ? null
+      : User.findById(requesterId).select("_id name is_blind accessibility_notes").lean(),
+  ]);
+
+  const userToReadFor = isCurrentUserRequester ? currentUser : requester;
+  const accessibilityNotes =
+    typeof userToReadFor?.accessibility_notes === "string"
+      ? userToReadFor.accessibility_notes.toLowerCase()
+      : "";
+  const shouldAutoRead =
+    Boolean(userToReadFor?.is_blind) ||
+    /(blind|сліп|незр|nevid)/.test(accessibilityNotes);
+
+  const currentUserAccessibilityNotes =
+    typeof currentUser?.accessibility_notes === "string"
+      ? currentUser.accessibility_notes.toLowerCase()
+      : "";
+  const isCurrentUserBlind =
+    Boolean(currentUser?.is_blind) ||
+    /(blind|сліп|незр|nevid)/.test(currentUserAccessibilityNotes);
+
+  const requesterAccessibilityNotes =
+    typeof requester?.accessibility_notes === "string"
+      ? requester.accessibility_notes.toLowerCase()
+      : "";
+  const requesterIsBlind = isCurrentUserRequester
+    ? isCurrentUserBlind
+    : Boolean(requester?.is_blind) || /(blind|сліп|незр|nevid)/.test(requesterAccessibilityNotes);
+
+  if (isCurrentUserRequester && requesterIsBlind) {
+    redirect(`/${locale}/dashboard/requester`);
+  }
 
   return (
-    <main className="mx-auto max-w-lg px-3 pb-3 pt-3">
-      <div className="card-surface sticky top-3 z-30 rounded-[30px] px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
+    <main className="mx-auto flex h-[100dvh] max-w-lg flex-col px-3 pb-3 pt-3">
+      <div className="card-surface sticky top-3 z-30 mb-3 rounded-[30px] px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <Link
               href={`/${locale}`}
@@ -74,9 +112,18 @@ export default async function LocalizedChatPage({
             </p>
             <p className="truncate text-xl font-black text-black">{partner?.name ?? "OpenArm"}</p>
           </div>
+          <PhoneCallButton requestId={params.requestId} />
         </div>
       </div>
-      <ChatContainer requestId={params.requestId} selfId={session.sub} partnerName={partner?.name} />
+      <ChatContainer
+        requestId={params.requestId}
+        selfId={session.sub}
+        partnerName={partner?.name}
+        autoReadIncomingText={shouldAutoRead}
+        showHeader={false}
+        isCurrentUserRequester={isCurrentUserRequester}
+        requesterIsBlind={requesterIsBlind}
+      />
     </main>
   );
 }

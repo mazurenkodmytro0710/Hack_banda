@@ -46,6 +46,7 @@ export default function HelperDashboardPage() {
   const [helperMarkers, setHelperMarkers] = useState<HelperPresenceDTO[]>([]);
   const [myRequests, setMyRequests] = useState<RequestListItem[]>([]);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const activeRequest = useMemo(
     () => myRequests.find((r) => r.status === "in_progress") ?? null,
@@ -160,12 +161,32 @@ export default function HelperDashboardPage() {
 
   const completeRequest = async () => {
     if (!activeRequest) return;
-    await fetch("/api/requests/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ request_id: activeRequest._id }),
-    });
-    await refreshData(coords.lat, coords.lng);
+    setActionBusy(true);
+    try {
+      await fetch("/api/requests/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: activeRequest._id }),
+      });
+      await refreshData(coords.lat, coords.lng);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const releaseRequest = async () => {
+    if (!activeRequest) return;
+    setActionBusy(true);
+    try {
+      await fetch("/api/requests/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: activeRequest._id }),
+      });
+      await refreshData(coords.lat, coords.lng);
+    } finally {
+      setActionBusy(false);
+    }
   };
 
   const distanceToActive = activeRequest
@@ -253,6 +274,8 @@ export default function HelperDashboardPage() {
           canComplete={canComplete}
           onAccept={acceptRequest}
           onComplete={completeRequest}
+          onRelease={releaseRequest}
+          busy={actionBusy}
         />
       </div>
     </div>

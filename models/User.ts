@@ -12,6 +12,7 @@ export interface UserDoc {
   karma_points: number;
   level: UserLevel;
   language_preference: Locale;
+  is_blind: boolean;
   accessibility_notes?: string;
   is_verified: boolean;
   created_at: Date;
@@ -31,6 +32,7 @@ const UserSchema = new Schema<UserDoc>({
   karma_points: { type: Number, default: 0 },
   level: { type: String, enum: ["Neighbor", "Guardian", "Hero"], default: "Neighbor" },
   language_preference: { type: String, enum: ["en", "uk", "sk"], default: "en" },
+  is_blind: { type: Boolean, default: false },
   accessibility_notes: { type: String },
   is_verified: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { CategoryIcon } from "@/components/Common/CategoryIcon";
 import { useLocalePath } from "@/lib/i18n/useLocalePath";
+import { safeVibrate } from "@/lib/vibration";
 import type { HelpRequestDTO } from "@/lib/types";
 
 /* ─── IDLE: toggle + scrollable request list ─── */
@@ -26,7 +27,7 @@ function IdleSheet({
       {/* Ready-to-help toggle */}
       <button
         type="button"
-        onClick={() => { onToggle(); navigator.vibrate?.(20); }}
+        onClick={() => { onToggle(); safeVibrate(20); }}
         className={`touch-target flex w-full items-center justify-between rounded-[24px] px-5 py-4 text-xl font-black transition ${
           isOnline ? "bg-accessible-lime text-black" : "bg-black/10 text-black"
         }`}
@@ -55,7 +56,7 @@ function IdleSheet({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => { void onAccept(req._id); navigator.vibrate?.(25); }}
+                  onClick={() => { void onAccept(req._id); safeVibrate(25); }}
                   className="touch-target rounded-2xl bg-black px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
                   aria-label={`${t("helper.accept_help")} – ${req.title}`}
                 >
@@ -76,11 +77,15 @@ function ActiveSheet({
   distanceMetres,
   canComplete,
   onComplete,
+  onRelease,
+  busy,
 }: {
   request: HelpRequestDTO;
   distanceMetres: number;
   canComplete: boolean;
   onComplete: () => Promise<void>;
+  onRelease: () => Promise<void>;
+  busy: boolean;
 }) {
   const { t } = useTranslation();
   const { href } = useLocalePath();
@@ -111,7 +116,7 @@ function ActiveSheet({
       <Link
         href={href(`/chat/${request._id}`)}
         className="touch-target flex items-center justify-center gap-2 rounded-[24px] bg-black text-xl font-black text-white"
-        onClick={() => navigator.vibrate?.(20)}
+        onClick={() => safeVibrate(20)}
       >
         💬 {t("common.chat")}
       </Link>
@@ -119,8 +124,8 @@ function ActiveSheet({
       {/* Complete button */}
       <button
         type="button"
-        onClick={() => { void onComplete(); navigator.vibrate?.(40); }}
-        disabled={!canComplete}
+        onClick={() => { void onComplete(); safeVibrate(40); }}
+        disabled={!canComplete || busy}
         className={`touch-target rounded-[24px] text-xl font-black transition ${
           canComplete
             ? "bg-accessible-lime text-black shadow-lg"
@@ -128,8 +133,16 @@ function ActiveSheet({
         }`}
       >
         {canComplete
-          ? "✅ " + t("helper.complete")
+          ? busy ? "Working..." : "✅ " + t("helper.complete")
           : t("helper.moveCloser", { distance: Math.round(distanceMetres) })}
+      </button>
+      <button
+        type="button"
+        onClick={() => { void onRelease(); safeVibrate(25); }}
+        disabled={busy}
+        className="touch-target rounded-[24px] bg-black/10 px-4 py-3 text-base font-black text-black disabled:opacity-50"
+      >
+        Release request
       </button>
     </div>
   );
@@ -145,6 +158,8 @@ export function HelperBottomSheet({
   canComplete,
   onAccept,
   onComplete,
+  onRelease,
+  busy,
 }: {
   isOnline: boolean;
   onToggleOnline: () => void;
@@ -154,6 +169,8 @@ export function HelperBottomSheet({
   canComplete: boolean;
   onAccept: (id: string) => Promise<void>;
   onComplete: () => Promise<void>;
+  onRelease: () => Promise<void>;
+  busy: boolean;
 }) {
   return (
     <div className="overflow-y-auto px-4 pb-safe pt-3">
@@ -163,6 +180,8 @@ export function HelperBottomSheet({
           distanceMetres={distanceMetres}
           canComplete={canComplete}
           onComplete={onComplete}
+          onRelease={onRelease}
+          busy={busy}
         />
       ) : (
         <IdleSheet

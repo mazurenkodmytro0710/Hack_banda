@@ -16,22 +16,58 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = createRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message ?? "Invalid request payload" },
+        { status: 400 }
+      );
     }
 
     await connectDB();
-    const { title, description, category, urgency, lat, lng, estimated_duration, accessibility_notes } =
-      parsed.data;
-
-    const doc = await HelpRequest.create({
-      requester_id: session.sub,
+    const {
       title,
       description,
       category,
       urgency,
-      location: { type: "Point", coordinates: [lng, lat] },
+      lat,
+      lng,
       estimated_duration,
       accessibility_notes,
+    } = parsed.data;
+
+    const safeTitle = String(title ?? "").trim() || String(description ?? "").trim().slice(0, 48) || "Need help";
+    const safeDescription = String(description ?? "").trim();
+    const safeDuration =
+      typeof estimated_duration === "number" && Number.isFinite(estimated_duration) && estimated_duration > 0
+        ? estimated_duration
+        : 30;
+    const safeA11y = typeof accessibility_notes === "string" ? accessibility_notes.trim() : "";
+
+    const existingActive = await HelpRequest.findOne({
+      requester_id: session.sub,
+      status: { $in: ["pending", "in_progress"] },
+    })
+      .sort({ created_at: -1 })
+      .exec();
+
+    if (existingActive) {
+      return NextResponse.json(
+        {
+          error: "You already have an active request. Complete or cancel it first.",
+          request: serializeRequest(existingActive),
+        },
+        { status: 409 }
+      );
+    }
+
+    const doc = await HelpRequest.create({
+      requester_id: session.sub,
+      title: safeTitle,
+      description: safeDescription,
+      category,
+      urgency,
+      location: { type: "Point", coordinates: [lng, lat] },
+      estimated_duration: safeDuration,
+      accessibility_notes: safeA11y,
     });
 
     await Promise.all([

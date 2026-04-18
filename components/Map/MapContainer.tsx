@@ -9,8 +9,12 @@ function Recenter({ center }: { center: { lat: number; lng: number } }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView([center.lat, center.lng], map.getZoom() || DEFAULT_ZOOM);
-    map.invalidateSize();
+    if (!map || !map.getContainer()) return;
+    map.setView([center.lat, center.lng], map.getZoom() || DEFAULT_ZOOM, { animate: false });
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [center, map]);
 
   return null;
@@ -34,7 +38,6 @@ export function OpenArmMapContainer({
         scrollWheelZoom
         zoomControl={false}
         style={{ height: "100%", width: "100%" }}
-        key={`${center.lat}-${center.lng}`}
       >
         <Recenter center={center} />
         <ZoomControl position="topright" />

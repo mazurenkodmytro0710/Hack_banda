@@ -27,10 +27,10 @@ export default function SettingsPage() {
       <section className="card-surface rounded-[30px] p-5">
         <h2 className="text-lg font-black">{t("settings.about")}</h2>
         <p className="mt-2 text-sm text-black/70">
-          OpenArm · v0.1 · Košice
+          {t("settings.aboutMeta")}
         </p>
         <p className="mt-3 text-sm text-black/60">
-          Mobile-first volunteer matching with requester/helper flows, live chat and safe-node fallback.
+          {t("settings.aboutBody")}
         </p>
       </section>
     </MobileLayout>

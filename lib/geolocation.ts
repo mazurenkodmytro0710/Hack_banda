@@ -27,11 +27,16 @@ export async function getUserLocation(): Promise<UserCoords> {
   }
 
   try {
-    const res = await fetch("https://ipapi.co/json/");
+    const res = await fetch("/api/location", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      if (typeof data.latitude === "number" && typeof data.longitude === "number") {
-        return { lat: data.latitude, lng: data.longitude, accuracy: "ip" };
+      const location = data.location;
+      if (typeof location?.lat === "number" && typeof location?.lng === "number") {
+        return {
+          lat: location.lat,
+          lng: location.lng,
+          accuracy: (location.accuracy as UserCoords["accuracy"]) ?? "ip",
+        };
       }
     }
   } catch {

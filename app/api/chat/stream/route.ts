@@ -31,21 +31,16 @@ export async function GET(req: NextRequest) {
   }
 
   const encoder = new TextEncoder();
-  let lastTime = new Date(0);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const push = async () => {
         try {
-          const rows = await Chat.find({
-            request_id: requestId,
-            created_at: { $gt: lastTime },
-          })
+          // For MVP reliability, stream the full ordered history and let the client dedupe by id.
+          // This avoids missing messages created within the same millisecond timestamp.
+          const rows = await Chat.find({ request_id: requestId })
             .sort({ created_at: 1 })
             .lean();
-          if (rows.length) {
-            lastTime = rows[rows.length - 1].created_at;
-          }
           const payload = rows.map((m) => ({
             _id: m._id.toString(),
             request_id: m.request_id.toString(),

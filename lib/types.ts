@@ -1,6 +1,6 @@
 export type Role = "REQUESTER" | "HELPER";
 export type RequestCategory = "transport" | "shopping" | "stairs" | "medical" | "other";
-export type RequestUrgency = "low" | "medium" | "high";
+export type RequestUrgency = "low" | "medium" | "high" | "critical";
 export type RequestStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UserLevel = "Neighbor" | "Guardian" | "Hero";
 export type SafeNodeCategory = "pharmacy" | "cafe" | "bank" | "hospital" | "post";
@@ -26,6 +26,7 @@ export interface PublicUser {
   karma_points: number;
   level: UserLevel;
   language_preference?: Locale;
+  is_blind?: boolean;
   accessibility_notes?: string;
 }
 
@@ -101,4 +102,5 @@ export const URGENCY_COLORS: Record<RequestUrgency, string> = {
   low: "#00CC00",
   medium: "#FFD700",
   high: "#E60000",
+  critical: "#7B0000",
 };

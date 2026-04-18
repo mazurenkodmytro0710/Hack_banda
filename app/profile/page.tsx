@@ -44,7 +44,7 @@ export default function ProfilePage() {
       setLogs((karmaData.logs ?? []) as KarmaLogItem[]);
     };
 
-    void load().catch(() => setError("Не вдалося завантажити профіль."));
+      void load().catch(() => setError(t("profile.loadFailed")));
   }, [href, router]);
 
   const logout = async () => {
@@ -150,10 +150,10 @@ export default function ProfilePage() {
         <div className="mt-4 grid gap-3">
           {logs.map((log) => (
             <div key={log._id} className="rounded-[22px] bg-white/80 p-4 shadow-sm">
-              <p className="font-bold">{log.action}</p>
+              <p className="font-bold">{t(`karma.${log.action}`)}</p>
               <p className="text-sm text-black/70">
                 {log.points_awarded > 0 ? "+" : ""}
-                {log.points_awarded} points
+                {log.points_awarded} {t("profile.pointsLabel")}
               </p>
               <p className="text-xs text-black/55">{new Date(log.created_at).toLocaleString()}</p>
             </div>

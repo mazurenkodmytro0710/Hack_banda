@@ -58,7 +58,7 @@ export function LocaleHomeClient({ locale }: { locale: Locale }) {
             {t("app.name")}
           </p>
           <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">
-            Mobile web app
+            {t("landing.appBadge")}
           </span>
         </div>
         <h1 className="mt-4 max-w-[11ch] text-[2.95rem] font-black leading-[0.92] tracking-[-0.045em] sm:text-6xl">
@@ -79,31 +79,31 @@ export function LocaleHomeClient({ locale }: { locale: Locale }) {
                 <p className="mt-1 text-sm text-white/70">{user.email}</p>
               </div>
               <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80">
-                Signed in
+                {t("landing.signedIn")}
               </span>
             </div>
             <Link href="/dashboard" className="mt-4 block">
               <AccessibleButton className="w-full bg-accessible-yellow text-black hover:brightness-95">
-                Open live map
+                {t("landing.openMap")}
               </AccessibleButton>
             </Link>
           </div>
         ) : (
           <div className="mt-5 flex items-center gap-2 text-sm text-white/65">
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">Map</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">Chat</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">Voice</span>
+            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickMap")}</span>
+            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickChat")}</span>
+            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickVoice")}</span>
           </div>
         )}
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
+      <section className="grid min-h-0 gap-3 md:grid-cols-2">
         <Link href={`/${locale}/auth/register?role=REQUESTER`} className="block">
           <div className="card-surface rounded-[30px] p-4 transition hover:-translate-y-0.5">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Requester</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">{t("landing.requesterLabel")}</p>
               <span className="rounded-full bg-accessible-red/10 px-3 py-1 text-xs font-bold text-accessible-red">
-                Need help
+                {t("landing.badgeNeedHelp")}
               </span>
             </div>
             <h2 className="mt-2 text-xl font-black">{t("auth.needHelpRole")}</h2>
@@ -113,9 +113,9 @@ export function LocaleHomeClient({ locale }: { locale: Locale }) {
         <Link href={`/${locale}/auth/register?role=HELPER`} className="block">
           <div className="card-surface rounded-[30px] p-4 transition hover:-translate-y-0.5">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Helper</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">{t("landing.helperLabel")}</p>
               <span className="rounded-full bg-accessible-lime/15 px-3 py-1 text-xs font-bold text-[#0d7a3d]">
-                Volunteer
+                {t("landing.badgeVolunteer")}
               </span>
             </div>
             <h2 className="mt-2 text-xl font-black">{t("auth.wantHelpRole")}</h2>

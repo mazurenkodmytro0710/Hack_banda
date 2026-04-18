@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
-    const { password, name, role, phone, language_preference, accessibility_notes } = parsed.data;
+    const { password, name, role, phone, language_preference, accessibility_notes, is_blind } = parsed.data;
     const email = parsed.data.email.trim().toLowerCase();
 
     const existing = await User.findOne({ email });
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       role,
       phone,
       language_preference,
+      is_blind: role === "REQUESTER" ? Boolean(is_blind) : false,
       accessibility_notes,
     });
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { safeVibrate } from "@/lib/vibration";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { PhoneCallButton } from "./PhoneCallButton";
@@ -20,16 +21,76 @@ interface Props {
   requestId: string;
   selfId: string;
   partnerName?: string;
+  autoReadIncomingText?: boolean;
+  showHeader?: boolean;
+  isCurrentUserRequester?: boolean;
+  requesterIsBlind?: boolean;
 }
 
-export function ChatContainer({ requestId, selfId, partnerName }: Props) {
+export function ChatContainer({
+  requestId,
+  selfId,
+  partnerName,
+  autoReadIncomingText = false,
+  showHeader = true,
+  isCurrentUserRequester = false,
+  requesterIsBlind = false,
+}: Props) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
+  const ttsQueueRef = useRef<string[]>([]);
+  const ttsPlayingRef = useRef(false);
 
-  // Load history once.
+  const processQueue = useCallback(async () => {
+    if (ttsPlayingRef.current || ttsQueueRef.current.length === 0) return;
+
+    ttsPlayingRef.current = true;
+    const text = ttsQueueRef.current.shift()!;
+
+    try {
+      await speakViaElevenLabs(text);
+    } finally {
+      ttsPlayingRef.current = false;
+      if (ttsQueueRef.current.length > 0) {
+        void processQueue();
+      }
+    }
+  }, []);
+
+  const enqueueTTS = useCallback((text: string) => {
+    ttsQueueRef.current.push(text);
+    void processQueue();
+  }, [processQueue]);
+
+  const mergeIncomingMessages = useCallback(
+    (batch: ChatMessage[]) => {
+      if (!batch.length) return;
+      setMessages((prev) => {
+        const next = [...prev];
+        for (const m of batch) {
+          if (seenRef.current.has(m._id)) continue;
+          seenRef.current.add(m._id);
+          next.push(m);
+          if (autoReadIncomingText && m.sender_id !== selfId && m.message_type === "text") {
+            safeVibrate(35);
+            enqueueTTS(m.message);
+          }
+          if (m.sender_id !== selfId && m.message_type === "system") {
+            safeVibrate([160, 80, 160]);
+            notifyIncomingCall(m.message);
+            playIncomingTone();
+          }
+        }
+        return next;
+      });
+    },
+    [autoReadIncomingText, enqueueTTS, selfId]
+  );
+
+  // Initial load.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -43,6 +104,7 @@ export function ChatContainer({ requestId, selfId, partnerName }: Props) {
         const initial: ChatMessage[] = data.messages ?? [];
         initial.forEach((m) => seenRef.current.add(m._id));
         setMessages(initial);
+        setError(null);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Load failed");
@@ -54,43 +116,36 @@ export function ChatContainer({ requestId, selfId, partnerName }: Props) {
     };
   }, [requestId]);
 
-  // SSE subscription for incoming messages.
+  // Reliable polling for incoming messages.
   useEffect(() => {
-    const es = new EventSource(
-      `/api/chat/stream?request_id=${encodeURIComponent(requestId)}`
-    );
-    es.onmessage = (evt) => {
+    let stopped = false;
+
+    const poll = async () => {
       try {
-        const batch: ChatMessage[] = JSON.parse(evt.data);
-        if (!batch.length) return;
-        setMessages((prev) => {
-          const next = [...prev];
-          for (const m of batch) {
-            if (seenRef.current.has(m._id)) continue;
-            seenRef.current.add(m._id);
-            next.push(m);
-            // Auto-read incoming text messages via TTS (silent-fallback server).
-            if (m.sender_id !== selfId && m.message_type === "text") {
-              navigator.vibrate?.(35);
-              void speakViaElevenLabs(m.message);
-            }
-            if (m.sender_id !== selfId && m.message_type === "system") {
-              navigator.vibrate?.([160, 80, 160]);
-              notifyIncomingCall(m.message);
-              playIncomingTone();
-            }
-          }
-          return next;
+        const res = await fetch(`/api/chat/send?request_id=${encodeURIComponent(requestId)}`, {
+          cache: "no-store",
         });
-      } catch {
-        /* ignore malformed frame */
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Load failed");
+        if (stopped) return;
+        mergeIncomingMessages((data.messages ?? []) as ChatMessage[]);
+        setError(null);
+      } catch (e) {
+        if (!stopped) {
+          setError(e instanceof Error ? e.message : "Load failed");
+        }
       }
     };
-    es.onerror = () => {
-      // let browser retry
+
+    const intervalId = window.setInterval(() => {
+      void poll();
+    }, 1500);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(intervalId);
     };
-    return () => es.close();
-  }, [requestId, selfId]);
+  }, [mergeIncomingMessages, requestId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -114,17 +169,21 @@ export function ChatContainer({ requestId, selfId, partnerName }: Props) {
     }
   };
 
+  const voiceOnlyInput = isCurrentUserRequester && requesterIsBlind;
+
   return (
-    <div className="flex h-[100dvh] flex-col gap-3 p-3">
-      <header className="card-surface flex items-center justify-between gap-2 rounded-[30px] p-3">
-        <div>
-          <p className="text-xs uppercase text-black/50">{t("chat.title")}</p>
-          <p className="text-base font-bold text-black">
-            {partnerName ?? "—"}
-          </p>
-        </div>
-        <PhoneCallButton requestId={requestId} />
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {showHeader ? (
+        <header className="card-surface sticky top-0 z-20 flex items-center justify-between gap-2 rounded-[30px] p-3">
+          <div>
+            <p className="text-xs uppercase text-black/50">{t("chat.title")}</p>
+            <p className="text-base font-bold text-black">
+              {partnerName ?? "—"}
+            </p>
+          </div>
+          <PhoneCallButton requestId={requestId} />
+        </header>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto rounded-[30px] bg-white/40 p-3">
         {error && (
@@ -149,27 +208,68 @@ export function ChatContainer({ requestId, selfId, partnerName }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <MessageInput onSend={send} />
+      <MessageInput
+        onSend={send}
+        isBlind={voiceOnlyInput}
+      />
     </div>
   );
 }
 
-async function speakViaElevenLabs(text: string) {
+async function speakViaElevenLabs(text: string): Promise<void> {
   try {
     const res = await fetch("/api/voice/generate-audio", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      await speakViaBrowser(text);
+      return;
+    }
     const blob = await res.blob();
-    if (!blob.size) return;
+    if (!blob.size) {
+      await speakViaBrowser(text);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    await audio.play().catch(() => undefined);
+
+    return new Promise<void>((resolve) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        void speakViaBrowser(text).then(() => resolve());
+      };
+      audio.play().catch(() => {
+        URL.revokeObjectURL(url);
+        void speakViaBrowser(text).then(() => resolve());
+      });
+    });
   } catch {
-    /* silent */
+    await speakViaBrowser(text);
+  }
+}
+
+function speakViaBrowser(text: string): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (!("speechSynthesis" in window)) return Promise.resolve();
+
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    return new Promise<void>((resolve) => {
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      window.speechSynthesis.speak(utterance);
+      setTimeout(() => resolve(), 30000);
+    });
+  } catch {
+    return Promise.resolve();
   }
 }
 
@@ -191,30 +291,8 @@ function notifyIncomingCall(message: string) {
 
 function playIncomingTone() {
   if (typeof window === "undefined") return;
-  try {
-    const AudioContextCtor =
-      window.AudioContext ||
-      (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!AudioContextCtor) return;
 
-    const context = new AudioContextCtor();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.type = "sine";
-    oscillator.frequency.value = 880;
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    gain.gain.setValueAtTime(0.001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.35);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.35);
-    oscillator.onended = () => {
-      void context.close();
-    };
-  } catch {
-    /* silent */
-  }
+  // Skip tone - AudioContext requires user gesture
+  // Just use visual/haptic feedback instead
+  safeVibrate([50, 30, 50]);
 }

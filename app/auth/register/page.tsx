@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [isBlind, setIsBlind] = useState(false);
   const [accessibilityNotes, setAccessibilityNotes] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -45,6 +46,7 @@ export default function RegisterPage() {
           password,
           phone,
           language_preference: locale,
+          is_blind: role === "REQUESTER" ? isBlind : false,
           accessibility_notes: accessibilityNotes,
         }),
       });
@@ -116,12 +118,28 @@ export default function RegisterPage() {
             onChange={(event) => setPhone(event.target.value)}
           />
           {role === "REQUESTER" ? (
-            <textarea
-              rows={3}
-              placeholder={t("auth.accessibility")}
-              value={accessibilityNotes}
-              onChange={(event) => setAccessibilityNotes(event.target.value)}
-            />
+            <>
+              <label className="flex items-start gap-3 rounded-[24px] border border-black/10 bg-white px-4 py-4 text-sm font-semibold text-black">
+                <input
+                  type="checkbox"
+                  checked={isBlind}
+                  onChange={(event) => setIsBlind(event.target.checked)}
+                  className="mt-0.5 h-5 w-5 rounded border-black/20 accent-black"
+                />
+                <span>
+                  {t("auth.blindMode")}
+                  <span className="mt-1 block text-xs font-medium text-black/55">
+                    {t("auth.blindModeHint")}
+                  </span>
+                </span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder={t("auth.accessibility")}
+                value={accessibilityNotes}
+                onChange={(event) => setAccessibilityNotes(event.target.value)}
+              />
+            </>
           ) : null}
           {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
           <AccessibleButton onClick={submit} disabled={pending} className="w-full">

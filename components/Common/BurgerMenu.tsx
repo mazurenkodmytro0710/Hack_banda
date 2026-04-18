@@ -87,7 +87,7 @@ export function BurgerMenu() {
                     <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-black/40">OpenArm</p>
                     <p className="mt-2 text-xl font-black leading-none">{t("common.menu")}</p>
                     <p className="mt-1 text-sm leading-5 text-black/55">
-                      Quick links
+                      {t("common.quickLinks")}
                     </p>
                   </div>
                   <button

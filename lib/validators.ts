@@ -10,6 +10,7 @@ export const registerSchema = z.object({
   role: z.enum(["REQUESTER", "HELPER"]),
   phone: z.string().optional(),
   language_preference: z.enum(["en", "uk", "sk"]).optional(),
+  is_blind: z.boolean().optional(),
   accessibility_notes: z.string().optional(),
 });
 
@@ -22,7 +23,7 @@ export const createRequestSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().default(""),
   category: z.enum(["transport", "shopping", "stairs", "medical", "other"]),
-  urgency: z.enum(["low", "medium", "high"]).default("medium"),
+  urgency: z.enum(["low", "medium", "high", "critical"]).default("medium"),
   lat: latitudeSchema,
   lng: longitudeSchema,
   estimated_duration: z.coerce.number().positive().optional(),

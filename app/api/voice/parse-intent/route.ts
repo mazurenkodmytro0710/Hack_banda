@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseRequestIntent } from "@/lib/gemini";
+import { parseRequestIntent } from "@/lib/intent-parser";
 
 export async function POST(req: NextRequest) {
   try {

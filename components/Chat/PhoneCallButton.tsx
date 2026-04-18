@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { safeVibrate } from "@/lib/vibration";
 
 interface Props {
   requestId: string;
@@ -15,9 +16,7 @@ export function PhoneCallButton({ requestId }: Props) {
     if (busy) return;
     setBusy(true);
     try {
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate?.(25);
-      }
+      safeVibrate(25);
       const res = await fetch("/api/phone/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

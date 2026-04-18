@@ -21,6 +21,8 @@
 
 html {
   height: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
   background:
     radial-gradient(circle at top left, rgba(255, 215, 0, 0.18), transparent 28%),
     linear-gradient(180deg, #fff8e6 0%, #f4efe8 55%, #eef6f1 100%);
@@ -30,6 +32,7 @@ body {
   height: 100%;
   min-height: 100dvh;
   margin: 0;
+  overflow-x: hidden;
   color: var(--openarm-text);
   font-family:
     "Atkinson Hyperlegible",
@@ -67,7 +70,7 @@ select {
 }
 
 main {
-  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .leaflet-container {

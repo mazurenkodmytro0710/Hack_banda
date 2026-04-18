@@ -99,6 +99,28 @@ export default function RequesterDashboardPage() {
 
   const activeRequest =
     requests.find((r) => r.status === "in_progress" || r.status === "pending") ?? null;
+  const requesterNotes =
+    typeof me?.accessibility_notes === "string" ? me.accessibility_notes.toLowerCase() : "";
+  const isBlindRequester =
+    Boolean(me?.is_blind) || /(blind|сліп|незр|nevid)/.test(requesterNotes);
+
+  const completeRequest = async (requestId: string) => {
+    await fetch("/api/requests/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId }),
+    });
+    await loadDashboard(coords.lat, coords.lng);
+  };
+
+  const cancelRequest = async (requestId: string) => {
+    await fetch("/api/requests/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId }),
+    });
+    await loadDashboard(coords.lat, coords.lng);
+  };
 
   const sheetH = sheetExpanded ? "h-[80dvh]" : "h-[30dvh] min-h-[230px]";
 
@@ -160,6 +182,9 @@ export default function RequesterDashboardPage() {
           coords={coords}
           activeRequest={activeRequest}
           safeNodes={safeNodes}
+          isBlindRequester={isBlindRequester}
+          onComplete={completeRequest}
+          onCancel={cancelRequest}
           onCreated={(r) => {
             setRequests((p) => [r, ...p]);
             void loadDashboard(coords.lat, coords.lng);

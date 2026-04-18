@@ -11,11 +11,13 @@ export function MobileLayout({
 }) {
   return (
     <main
-      className={`mx-auto flex w-full max-w-5xl flex-col px-4 pb-safe sm:px-6 ${
-        appShell ? "h-[100dvh] max-h-[100dvh] overflow-hidden" : "min-h-screen"
+      className={`mx-auto flex w-full max-w-5xl flex-col px-3 pb-safe sm:px-6 ${
+        appShell
+          ? "h-[100svh] max-h-[100svh] overflow-hidden md:h-[100dvh] md:max-h-[100dvh]"
+          : "min-h-[100svh] md:min-h-screen"
       }`}
     >
-      <div className={`flex min-h-0 flex-1 flex-col gap-4 py-4 ${className}`}>{children}</div>
+      <div className={`flex min-h-0 flex-1 flex-col gap-4 py-3 sm:py-4 ${className}`}>{children}</div>
     </main>
   );
 }
