@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Apateka \"Zdravie\"",
+    "category": "pharmacy",
+    "location": { "type": "Point", "coordinates": [21.26, 48.718] },
+    "phone": "+421 55 123 4567",
+    "hours": "08:00-20:00",
+    "is_active": true,
+    "is_partner": true,
+    "language_support": ["uk", "sk", "en"],
+    "accessibility": { "wheelchair_access": true, "ramp": true, "elevator": false }
+  },
+  {
+    "name": "Cafe Central",
+    "category": "cafe",
+    "location": { "type": "Point", "coordinates": [21.262, 48.715] },
+    "phone": "+421 55 234 5678",
+    "hours": "07:30-21:00",
+    "is_active": true,
+    "is_partner": true,
+    "language_support": ["uk", "sk", "en"],
+    "accessibility": { "wheelchair_access": true, "ramp": true, "elevator": false }
+  },
+  {
+    "name": "Posta Slovakia",
+    "category": "post",
+    "location": { "type": "Point", "coordinates": [21.258, 48.716] },
+    "phone": "+421 55 345 6789",
+    "hours": "08:00-18:00",
+    "is_active": true,
+    "is_partner": false,
+    "language_support": ["sk", "en"],
+    "accessibility": { "wheelchair_access": true, "ramp": false, "elevator": false }
+  },
+  {
+    "name": "Hospital sv. Alzbety",
+    "category": "hospital",
+    "location": { "type": "Point", "coordinates": [21.265, 48.72] },
+    "phone": "+421 55 456 7890",
+    "hours": "24/7",
+    "is_active": true,
+    "is_partner": true,
+    "language_support": ["uk", "sk", "en"],
+    "accessibility": { "wheelchair_access": true, "ramp": true, "elevator": true }
+  },
+  {
+    "name": "Bank Tatra",
+    "category": "bank",
+    "location": { "type": "Point", "coordinates": [21.261, 48.717] },
+    "phone": "+421 55 567 8901",
+    "hours": "09:00-17:00",
+    "is_active": true,
+    "is_partner": false,
+    "language_support": ["sk", "en"],
+    "accessibility": { "wheelchair_access": true, "ramp": true, "elevator": true }
+  }
+]

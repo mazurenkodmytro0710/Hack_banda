@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "./accessibility.css";
+@import "./animations.css";
+
+:root {
+  color-scheme: light;
+  --openarm-bg: #f6efe1;
+  --openarm-surface: rgba(255, 255, 255, 0.92);
+  --openarm-surface-strong: #ffffff;
+  --openarm-border: rgba(0, 0, 0, 0.12);
+  --openarm-text: #111111;
+  --openarm-muted: #4b5563;
+  --openarm-yellow: #ffd700;
+  --openarm-red: #e60000;
+  --openarm-green: #00cc66;
+  --openarm-blue: #0066cc;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(255, 215, 0, 0.18), transparent 28%),
+    linear-gradient(180deg, #fff8e6 0%, #f4efe8 55%, #eef6f1 100%);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--openarm-text);
+  font-family:
+    "Atkinson Hyperlegible",
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  background: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 2px solid rgba(17, 17, 17, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--openarm-text);
+  padding: 0.95rem 1rem;
+}
+
+main {
+  min-height: 100vh;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 24px;
+  border: 2px solid rgba(17, 17, 17, 0.08);
+  box-shadow: 0 20px 45px rgba(17, 17, 17, 0.12);
+}
+
+.card-surface {
+  border: 1px solid var(--openarm-border);
+  background: var(--openarm-surface);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(17, 17, 17, 0.08);
+}

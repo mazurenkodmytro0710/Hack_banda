@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["scripts/**/*.ts", "lib/**/*.ts", "models/**/*.ts"],
+  "ts-node": { "transpileOnly": true, "require": ["tsconfig-paths/register"] }
+}

@@ -1,0 +1,32 @@
+@keyframes openarm-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(230, 0, 0, 0.35);
+  }
+
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 16px rgba(230, 0, 0, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(230, 0, 0, 0);
+  }
+}
+
+@keyframes openarm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: openarm-rise 0.35s ease-out both;
+}
