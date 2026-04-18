@@ -22,6 +22,7 @@ const config: Config = {
       },
       spacing: {
         safe: "max(1rem, env(safe-area-inset-bottom))",
+        "safe-top": "max(0.75rem, env(safe-area-inset-top))",
         touch: "60px",
       },
       fontSize: {

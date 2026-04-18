@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SubPageLayout } from "@/components/Layout/SubPageLayout";
 import { RequestCard } from "@/components/Requester/RequestCard";
 import type { HelpRequestDTO } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export default function MyRequestsPage() {
   }, [router]);
 
   return (
-    <>
+    <SubPageLayout backHref="/dashboard/requester" backLabel="← Карта">
       <section className="card-surface rounded-[32px] p-5">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">History</p>
         <h1 className="mt-2 text-3xl font-black">Мої запити</h1>
@@ -47,9 +48,12 @@ export default function MyRequestsPage() {
         {requests.map((request) => (
           <RequestCard key={request._id} request={request} />
         ))}
+        {requests.length === 0 && (
+          <div className="card-surface rounded-[28px] p-5 text-black/60">Поки немає запитів.</div>
+        )}
       </section>
 
       {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-    </>
+    </SubPageLayout>
   );
 }

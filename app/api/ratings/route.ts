@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getSession, unauthorized } from "@/lib/auth";
+import { getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { ratingSchema } from "@/lib/validators";
 import { HelpRequest } from "@/models/Request";
 import { Rating } from "@/models/Rating";
@@ -11,7 +11,7 @@ import { serializeRating } from "@/lib/serializers";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
 
     const body = await req.json();

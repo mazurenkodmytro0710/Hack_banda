@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SubPageLayout } from "@/components/Layout/SubPageLayout";
 import { ActiveHelpStatus } from "@/components/Helper/ActiveHelpStatus";
 import type { HelpRequestDTO } from "@/lib/types";
 
@@ -32,7 +33,7 @@ export default function MyCompletionsPage() {
   }, [router]);
 
   return (
-    <>
+    <SubPageLayout backHref="/dashboard/helper" backLabel="← Карта">
       <section className="card-surface rounded-[32px] p-5">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Completed</p>
         <h1 className="mt-2 text-3xl font-black">Мої завершені допомоги</h1>
@@ -48,6 +49,6 @@ export default function MyCompletionsPage() {
         </div>
       ) : null}
       {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-    </>
+    </SubPageLayout>
   );
 }

@@ -3,13 +3,13 @@ import { connectDB } from "@/lib/mongodb";
 import { HelpRequest } from "@/models/Request";
 import { KarmaLog } from "@/models/KarmaLog";
 import { User } from "@/models/User";
-import { getSession, unauthorized, forbidden } from "@/lib/auth";
+import { forbidden, getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { serializeRequest } from "@/lib/serializers";
 import { createRequestSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
     if (session.role !== "REQUESTER") return forbidden();
 

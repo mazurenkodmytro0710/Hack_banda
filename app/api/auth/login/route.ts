@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { signSession, setSessionCookie } from "@/lib/auth";
+import { applySessionCookie, signSession } from "@/lib/auth";
 import { serializeUser } from "@/lib/serializers";
 import { loginSchema } from "@/lib/validators";
 
@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
       role: user.role,
       name: user.name,
     });
-    await setSessionCookie(token);
-
-    return NextResponse.json({ user: serializeUser(user) });
+    const response = NextResponse.json({ user: serializeUser(user) });
+    applySessionCookie(response, token);
+    return response;
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Login failed";
     return NextResponse.json({ error: msg }, { status: 500 });

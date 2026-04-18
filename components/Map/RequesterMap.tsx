@@ -9,15 +9,22 @@ export default function RequesterMap({
   requests,
   helpers,
   safeNodes,
+  className,
 }: {
   center: { lat: number; lng: number };
   requests: HelpRequestDTO[];
   helpers: HelperPresenceDTO[];
   safeNodes: SafeNodeDTO[];
+  /** Container size override – pass "h-full w-full" for full-screen use */
+  className?: string;
 }) {
   return (
-    <OpenArmMapContainer center={center}>
-      <CircleMarker center={[center.lat, center.lng]} radius={11} pathOptions={{ color: "#111111", fillColor: "#ffd700", fillOpacity: 1 }}>
+    <OpenArmMapContainer center={center} className={className}>
+      <CircleMarker
+        center={[center.lat, center.lng]}
+        radius={11}
+        pathOptions={{ color: "#111111", fillColor: "#ffd700", fillOpacity: 1 }}
+      >
         <Popup>Ви зараз тут</Popup>
       </CircleMarker>
 
@@ -39,7 +46,10 @@ export default function RequesterMap({
       {helpers.map((helper) => (
         <CircleMarker
           key={helper._id}
-          center={[helper.current_location.coordinates[1], helper.current_location.coordinates[0]]}
+          center={[
+            helper.current_location.coordinates[1],
+            helper.current_location.coordinates[0],
+          ]}
           radius={10}
           pathOptions={{ color: "#ffffff", fillColor: "#00cc66", fillOpacity: 1 }}
         >

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { HelpRequest } from "@/models/Request";
 import { User } from "@/models/User";
 import { serializeRequest } from "@/lib/serializers";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: "Invalid request id" }, { status: 400 });
+  }
+
   await connectDB();
   const r = await HelpRequest.findById(params.id);
   if (!r) return NextResponse.json({ error: "Not found" }, { status: 404 });

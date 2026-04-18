@@ -9,6 +9,7 @@ export const registerSchema = z.object({
   name: z.string().min(1).max(80),
   role: z.enum(["REQUESTER", "HELPER"]),
   phone: z.string().optional(),
+  language_preference: z.enum(["en", "uk", "sk"]).optional(),
   accessibility_notes: z.string().optional(),
 });
 
@@ -59,4 +60,8 @@ export const karmaAdjustSchema = z.object({
   ]),
   points_awarded: z.coerce.number().int(),
   request_id: z.string().optional(),
+});
+
+export const languagePreferenceSchema = z.object({
+  language_preference: z.enum(["en", "uk", "sk"]),
 });

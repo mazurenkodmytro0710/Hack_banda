@@ -4,6 +4,7 @@ export type RequestUrgency = "low" | "medium" | "high";
 export type RequestStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type UserLevel = "Neighbor" | "Guardian" | "Hero";
 export type SafeNodeCategory = "pharmacy" | "cafe" | "bank" | "hospital" | "post";
+export type Locale = "en" | "uk" | "sk";
 export type KarmaAction =
   | "helped"
   | "positive_rating"
@@ -24,6 +25,7 @@ export interface PublicUser {
   phone?: string;
   karma_points: number;
   level: UserLevel;
+  language_preference?: Locale;
   accessibility_notes?: string;
 }
 

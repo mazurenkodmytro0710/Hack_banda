@@ -1,5 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
-import type { Role, UserLevel } from "@/lib/types";
+import type { Locale, Role, UserLevel } from "@/lib/types";
 
 export interface UserDoc {
   _id: mongoose.Types.ObjectId;
@@ -11,6 +11,7 @@ export interface UserDoc {
   location?: { type: "Point"; coordinates: [number, number] };
   karma_points: number;
   level: UserLevel;
+  language_preference: Locale;
   accessibility_notes?: string;
   is_verified: boolean;
   created_at: Date;
@@ -29,6 +30,7 @@ const UserSchema = new Schema<UserDoc>({
   },
   karma_points: { type: Number, default: 0 },
   level: { type: String, enum: ["Neighbor", "Guardian", "Hero"], default: "Neighbor" },
+  language_preference: { type: String, enum: ["en", "uk", "sk"], default: "en" },
   accessibility_notes: { type: String },
   is_verified: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },

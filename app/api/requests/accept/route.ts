@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { HelpRequest } from "@/models/Request";
 import { HelperStatus } from "@/models/Helper";
-import { getSession, unauthorized, forbidden } from "@/lib/auth";
+import { Chat } from "@/models/Chat";
+import { forbidden, getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { serializeRequest } from "@/lib/serializers";
 import { requestIdSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
     if (session.role !== "HELPER") return forbidden();
 
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest) {
       },
       { upsert: true, new: true }
     );
+
+    await Chat.create({
+      request_id: updated._id,
+      sender_id: session.sub,
+      recipient_id: updated.requester_id,
+      message: `${session.name} accepted your request. Chat is now open.`,
+      message_type: "system",
+    });
 
     return NextResponse.json({ request: serializeRequest(updated) });
   } catch (err) {

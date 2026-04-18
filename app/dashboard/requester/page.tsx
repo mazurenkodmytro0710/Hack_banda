@@ -2,202 +2,170 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { RequestForm } from "@/components/Requester/RequestForm";
-import { RequestCard } from "@/components/Requester/RequestCard";
-import { SafeNodeCard } from "@/components/Requester/SafeNodeCard";
-import { KarmaDisplay } from "@/components/Common/KarmaDisplay";
-import { RatingModal } from "@/components/Common/RatingModal";
-import { AccessibleButton } from "@/components/Common/AccessibleButton";
+import { useCallback, useEffect, useState } from "react";
+import { RequesterBottomSheet } from "@/components/Requester/RequesterBottomSheet";
+import { BurgerMenu } from "@/components/Common/BurgerMenu";
 import { getUserLocation } from "@/lib/geolocation";
 import { KOSICE_DEFAULT } from "@/lib/constants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useLocalePath } from "@/lib/i18n/useLocalePath";
 import type { HelpRequestDTO, HelperPresenceDTO, PublicUser, SafeNodeDTO } from "@/lib/types";
 
 const RequesterMap = dynamic(() => import("@/components/Map/RequesterMap"), {
   ssr: false,
-  loading: () => <div className="card-surface h-[320px] rounded-[28px] p-4">Завантажую мапу...</div>,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-white/50">
+      <span className="text-black/50">Завантажую мапу…</span>
+    </div>
+  ),
 });
 
-type RequestListItem = HelpRequestDTO & {
-  counterparty_name?: string | null;
-};
+type RequestListItem = HelpRequestDTO & { counterparty_name?: string | null };
+
+async function readJson<T>(response: Response): Promise<T | null> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+  if (!text || !contentType.includes("application/json")) return null;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
 
 export default function RequesterDashboardPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { href } = useLocalePath();
   const [me, setMe] = useState<PublicUser | null>(null);
   const [coords, setCoords] = useState({ lat: KOSICE_DEFAULT.lat, lng: KOSICE_DEFAULT.lng });
+  const [locationLabel, setLocationLabel] = useState(t("common.locationPending"));
   const [requests, setRequests] = useState<RequestListItem[]>([]);
   const [helpers, setHelpers] = useState<HelperPresenceDTO[]>([]);
   const [safeNodes, setSafeNodes] = useState<SafeNodeDTO[]>([]);
-  const [error, setError] = useState("");
-  const [showRating, setShowRating] = useState(false);
-  const [ratedRequestIds, setRatedRequestIds] = useState<string[]>([]);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
 
-  const loadDashboard = useCallback(async (lat: number, lng: number) => {
-    const [meRes, requestsRes, helpersRes, safeNodesRes] = await Promise.all([
-      fetch("/api/auth/me", { cache: "no-store" }),
-      fetch("/api/requests/mine?status=pending,in_progress,completed", { cache: "no-store" }),
-      fetch(`/api/helpers/nearby?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
-      fetch(`/api/safe-nodes?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
-    ]);
+  const loadDashboard = useCallback(
+    async (lat: number, lng: number) => {
+      const [meRes, requestsRes, helpersRes, safeNodesRes] = await Promise.all([
+        fetch("/api/auth/me", { cache: "no-store" }),
+        fetch("/api/requests/mine?status=pending,in_progress,completed", { cache: "no-store" }),
+        fetch(`/api/helpers/nearby?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
+        fetch(`/api/safe-nodes?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
+      ]);
 
-    const meData = await meRes.json();
-    if (!meRes.ok || !meData.user) {
-      router.replace("/auth/login");
-      return;
-    }
+      const meData = await readJson<{ user?: PublicUser | null }>(meRes);
+      if (meRes.status === 401 || meRes.status === 403) {
+        router.replace(href("/auth/login"));
+        return;
+      }
+      if (!meRes.ok || !meData?.user) return;
 
-    const requestsData = await requestsRes.json();
-    const helpersData = await helpersRes.json();
-    const safeNodesData = await safeNodesRes.json();
+      const requestsData = await readJson<{ requests?: RequestListItem[] }>(requestsRes);
+      const helpersData = await readJson<{ helpers?: HelperPresenceDTO[] }>(helpersRes);
+      const safeNodesData = await readJson<{ nodes?: SafeNodeDTO[] }>(safeNodesRes);
 
-    setMe(meData.user as PublicUser);
-    setRequests((requestsData.requests ?? []) as RequestListItem[]);
-    setHelpers((helpersData.helpers ?? []) as HelperPresenceDTO[]);
-    setSafeNodes((safeNodesData.nodes ?? []) as SafeNodeDTO[]);
-  }, [router]);
+      setMe(meData.user as PublicUser);
+      setRequests((requestsData?.requests ?? []) as RequestListItem[]);
+      setHelpers((helpersData?.helpers ?? []) as HelperPresenceDTO[]);
+      setSafeNodes((safeNodesData?.nodes ?? []) as SafeNodeDTO[]);
+    },
+    [href, router]
+  );
 
+  // Boot: get GPS + first load
   useEffect(() => {
     let cancelled = false;
-
-    const boot = async () => {
+    (async () => {
       try {
-        const nextCoords = await getUserLocation();
+        const loc = await getUserLocation();
         if (cancelled) return;
-        setCoords({ lat: nextCoords.lat, lng: nextCoords.lng });
-        await loadDashboard(nextCoords.lat, nextCoords.lng);
+        setCoords({ lat: loc.lat, lng: loc.lng });
+        setLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
+        await loadDashboard(loc.lat, loc.lng);
       } catch {
-        if (cancelled) return;
-        setError("Не вдалося завантажити requester dashboard.");
+        if (!cancelled) await loadDashboard(KOSICE_DEFAULT.lat, KOSICE_DEFAULT.lng);
       }
-    };
+    })();
+    return () => { cancelled = true; };
+  }, [loadDashboard, t]);
 
-    void boot();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadDashboard]);
-
+  // Poll every 5s
   useEffect(() => {
-    const interval = setInterval(() => {
-      void loadDashboard(coords.lat, coords.lng);
-    }, 5000);
+    const id = setInterval(() => void loadDashboard(coords.lat, coords.lng), 5000);
+    return () => clearInterval(id);
+  }, [coords, loadDashboard]);
 
-    return () => clearInterval(interval);
-  }, [coords.lat, coords.lng, loadDashboard]);
+  const activeRequest =
+    requests.find((r) => r.status === "in_progress" || r.status === "pending") ?? null;
 
-  const activeRequest = useMemo(
-    () => requests.find((request) => request.status === "in_progress" || request.status === "pending") ?? null,
-    [requests]
-  );
-  const requestToRate = useMemo(
-    () =>
-      requests.find(
-        (request) =>
-          request.status === "completed" &&
-          Boolean(request.accepted_by) &&
-          !ratedRequestIds.includes(request._id)
-      ) ?? null,
-    [ratedRequestIds, requests]
-  );
+  const sheetH = sheetExpanded ? "h-[80dvh]" : "h-[30dvh] min-h-[230px]";
 
-  const submitRating = async (payload: { rating: 1 | -1; comment: string }) => {
-    if (!requestToRate?.accepted_by) return;
-
-    const response = await fetch("/api/ratings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        request_id: requestToRate._id,
-        to_user_id: requestToRate.accepted_by,
-        rating: payload.rating,
-        comment: payload.comment,
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error ?? "Не вдалося надіслати рейтинг.");
-      return;
-    }
-
-    setRatedRequestIds((current) => [...current, requestToRate._id]);
-    await loadDashboard(coords.lat, coords.lng);
-  };
+  const topBarHeight = 92;
+  const bottomOffset = sheetExpanded ? "80dvh" : "30dvh";
 
   return (
-    <>
-      <section className="rounded-[34px] bg-black px-5 py-6 text-white">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/68">Requester</p>
-        <h1 className="mt-2 text-3xl font-black">Просити допомогу без бар’єрів</h1>
-        <p className="mt-3 text-white/78">
-          Створи запит голосом або текстом, а ми покажемо волонтерів та безпечні точки поруч.
-        </p>
-      </section>
-
-      {me ? <KarmaDisplay points={me.karma_points} level={me.level} /> : null}
-
-      <RequestForm
-        coords={coords}
-        onCreated={(request) => {
-          setRequests((current) => [request, ...current]);
-          void loadDashboard(coords.lat, coords.lng);
-        }}
-      />
-
-      {activeRequest ? <RequestCard request={activeRequest} /> : null}
-
-      <section className="card-surface rounded-[32px] p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Live Map</p>
-            <h2 className="mt-2 text-2xl font-black">Волонтери, safe nodes і ваш запит</h2>
+    <div className="relative h-[100dvh] w-full overflow-hidden">
+      {/* ── TOP BAR ── */}
+      <div className="absolute left-0 right-0 top-0 z-[50] px-4 pb-3 pt-safe-top">
+        <div className="flex items-center gap-3 rounded-[28px] bg-white/92 px-3 py-3 shadow-[0_18px_40px_rgba(17,17,17,0.16)] backdrop-blur">
+          <div className="flex flex-1 items-center gap-3">
+            <BurgerMenu />
           </div>
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-black">
-            {helpers.length} helpers
-          </span>
+          <div className="flex-1 text-center">
+            <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-black/10 px-4 py-2 text-xs font-bold text-black shadow sm:text-sm">
+              📍 {locationLabel}
+            </span>
+          </div>
+          <div className="flex flex-1 justify-end">
+            {me && (
+              <span className="rounded-full bg-accessible-yellow px-3 py-2 text-xs font-bold text-black shadow">
+                ⭐ {me.karma_points}
+              </span>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* ── MAP LAYER ── */}
+      <div
+        className="absolute inset-x-0 transition-all duration-300"
+        style={{ top: `${topBarHeight}px`, bottom: bottomOffset }}
+      >
         <RequesterMap
           center={coords}
           requests={activeRequest ? [activeRequest] : []}
           helpers={helpers}
           safeNodes={safeNodes}
+          className="h-full w-full"
         />
-      </section>
+      </div>
 
-      {helpers.length === 0 && safeNodes.length > 0 ? (
-        <section className="grid gap-3">
-          <div className="card-surface rounded-[28px] p-4">
-            <h2 className="text-2xl font-black">Fallback: безпечні точки поруч</h2>
-            <p className="mt-2 text-black/70">
-              Якщо зараз немає волонтерів online, ці місця можуть допомогти офлайн.
-            </p>
-          </div>
-          {safeNodes.map((node) => (
-            <SafeNodeCard key={node._id} node={node} />
-          ))}
-        </section>
-      ) : null}
+      {/* ── BOTTOM SHEET ── */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-[40] card-surface rounded-t-[32px] shadow-2xl transition-all duration-300 ${sheetH}`}
+      >
+        {/* Drag handle */}
+        <button
+          type="button"
+          className="mx-auto mt-3 mb-1 flex h-6 w-full items-center justify-center"
+          aria-label={sheetExpanded ? t("common.close") : t("common.menu")}
+          onClick={() => setSheetExpanded((p) => !p)}
+        >
+          <div className="h-1.5 w-12 rounded-full bg-black/20" />
+        </button>
 
-      {requestToRate ? (
-        <div className="card-surface rounded-[28px] p-4">
-          <h2 className="text-2xl font-black">Запит завершено</h2>
-          <p className="mt-2 text-black/70">
-            Волонтер уже позначив допомогу як завершену. Можеш залишити відгук.
-          </p>
-          <div className="mt-4">
-            <AccessibleButton onClick={() => setShowRating(true)}>Оцінити допомогу</AccessibleButton>
-          </div>
-        </div>
-      ) : null}
-
-      {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-
-      <RatingModal
-        open={showRating}
-        onClose={() => setShowRating(false)}
-        onSubmit={submitRating}
-      />
-    </>
+        <RequesterBottomSheet
+          coords={coords}
+          activeRequest={activeRequest}
+          safeNodes={safeNodes}
+          onCreated={(r) => {
+            setRequests((p) => [r, ...p]);
+            void loadDashboard(coords.lat, coords.lng);
+          }}
+        />
+      </div>
+    </div>
   );
 }

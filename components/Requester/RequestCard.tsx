@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CategoryIcon } from "@/components/Common/CategoryIcon";
 import type { HelpRequestDTO } from "@/lib/types";
 
@@ -34,6 +35,14 @@ export function RequestCard({ request }: { request: RequestCardData }) {
         {request.counterparty_name ? <p>Контакт: {request.counterparty_name}</p> : null}
         {request.accessibility_notes ? <p>Доступність: {request.accessibility_notes}</p> : null}
       </div>
+      {request.status === "in_progress" && request.accepted_by ? (
+        <Link
+          href={`/chat/${request._id}`}
+          className="touch-target mt-4 inline-flex rounded-2xl bg-black px-4 py-3 text-base font-bold text-white"
+        >
+          💬 Chat
+        </Link>
+      ) : null}
     </article>
   );
 }

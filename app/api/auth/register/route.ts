@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { signSession, setSessionCookie } from "@/lib/auth";
+import { applySessionCookie, signSession } from "@/lib/auth";
 import { serializeUser } from "@/lib/serializers";
 import { registerSchema } from "@/lib/validators";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
-    const { password, name, role, phone, accessibility_notes } = parsed.data;
+    const { password, name, role, phone, language_preference, accessibility_notes } = parsed.data;
     const email = parsed.data.email.trim().toLowerCase();
 
     const existing = await User.findOne({ email });
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       name,
       role,
       phone,
+      language_preference,
       accessibility_notes,
     });
 
@@ -39,9 +40,9 @@ export async function POST(req: NextRequest) {
       role: user.role,
       name: user.name,
     });
-    await setSessionCookie(token);
-
-    return NextResponse.json({ user: serializeUser(user) }, { status: 201 });
+    const response = NextResponse.json({ user: serializeUser(user) }, { status: 201 });
+    applySessionCookie(response, token);
+    return response;
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Registration failed";
     return NextResponse.json({ error: msg }, { status: 500 });

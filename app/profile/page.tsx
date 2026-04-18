@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AccessibleButton } from "@/components/Common/AccessibleButton";
 import { KarmaDisplay } from "@/components/Common/KarmaDisplay";
+import { MobileLayout } from "@/components/Layout/MobileLayout";
+import { SubpageHeader } from "@/components/Layout/SubpageHeader";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useLocalePath } from "@/lib/i18n/useLocalePath";
 import type { PublicUser } from "@/lib/types";
 
 type KarmaLogItem = {
@@ -15,6 +19,8 @@ type KarmaLogItem = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { href } = useLocalePath();
   const [user, setUser] = useState<PublicUser | null>(null);
   const [logs, setLogs] = useState<KarmaLogItem[]>([]);
   const [error, setError] = useState("");
@@ -30,7 +36,7 @@ export default function ProfilePage() {
       const karmaData = await karmaRes.json();
 
       if (!meRes.ok || !meData.user) {
-        router.replace("/auth/login");
+        router.replace(href("/auth/login"));
         return;
       }
 
@@ -39,58 +45,111 @@ export default function ProfilePage() {
     };
 
     void load().catch(() => setError("Не вдалося завантажити профіль."));
-  }, [router]);
+  }, [href, router]);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
+    router.push(href("/"));
   };
 
   return (
-    <>
-      <section className="card-surface rounded-[32px] p-5">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Profile</p>
-        <h1 className="mt-2 text-3xl font-black">Мій профіль</h1>
-      </section>
+    <MobileLayout>
+      <SubpageHeader
+        title={t("profile.title")}
+        subtitle={t("profile.subtitle")}
+        backHref={href("/dashboard")}
+        backLabel={t("common.backToMap")}
+      />
+
+      {user ? (
+        <section className="card-surface overflow-hidden rounded-[32px] p-0">
+          <div className="bg-black px-5 py-6 text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/55">
+              {t("common.profile")}
+            </p>
+            <div className="mt-4 flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accessible-yellow text-2xl font-black text-black">
+                {user.name.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-2xl font-black">{user.name}</h2>
+                <p className="truncate text-sm text-white/70">{user.email}</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 p-5">
+            <div className="rounded-[24px] bg-white/85 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                {t("common.role")}
+              </p>
+              <p className="mt-2 text-xl font-black text-black">{user.role}</p>
+            </div>
+            <div className="rounded-[24px] bg-white/85 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                {t("common.language")}
+              </p>
+              <p className="mt-2 text-xl font-black text-black">
+                {(user.language_preference ?? "en").toUpperCase()}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {user ? <KarmaDisplay points={user.karma_points} level={user.level} /> : null}
 
       {user ? (
         <section className="card-surface rounded-[30px] p-5">
-          <div className="grid gap-2 text-black/75">
-            <p>
-              <span className="font-bold text-black">Ім’я:</span> {user.name}
-            </p>
-            <p>
-              <span className="font-bold text-black">Email:</span> {user.email}
-            </p>
-            <p>
-              <span className="font-bold text-black">Роль:</span> {user.role}
-            </p>
-            {user.phone ? (
-              <p>
-                <span className="font-bold text-black">Телефон:</span> {user.phone}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                {t("common.profile")}
               </p>
+              <h2 className="mt-1 text-2xl font-black text-black">{t("common.settings")}</h2>
+            </div>
+            <AccessibleButton tone="secondary" className="min-w-[148px]" onClick={() => router.push(href("/settings"))}>
+              {t("common.settings")}
+            </AccessibleButton>
+          </div>
+
+          <div className="mt-4 grid gap-3 text-black/80">
+            <div className="rounded-[24px] bg-white/78 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                {t("common.email")}
+              </p>
+              <p className="mt-1 text-lg font-bold text-black">{user.email}</p>
+            </div>
+            {user.phone ? (
+              <div className="rounded-[24px] bg-white/78 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                  {t("common.phone")}
+                </p>
+                <p className="mt-1 text-lg font-bold text-black">{user.phone}</p>
+              </div>
             ) : null}
             {user.accessibility_notes ? (
-              <p>
-                <span className="font-bold text-black">Нотатки:</span> {user.accessibility_notes}
-              </p>
+              <div className="rounded-[24px] bg-white/78 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-black/45">
+                  {t("profile.accessibilityNotes")}
+                </p>
+                <p className="mt-1 text-base text-black">{user.accessibility_notes}</p>
+              </div>
             ) : null}
           </div>
-          <div className="mt-4">
-            <AccessibleButton tone="secondary" onClick={logout}>
-              Вийти
+
+          <div className="mt-5">
+            <AccessibleButton tone="danger" className="w-full" onClick={logout}>
+              {t("common.logout")}
             </AccessibleButton>
           </div>
         </section>
       ) : null}
 
-      <section className="card-surface rounded-[30px] p-5">
-        <h2 className="text-2xl font-black">Історія карми</h2>
+      <section id="karma" className="card-surface rounded-[30px] p-5">
+        <h2 className="text-2xl font-black">{t("profile.karmaHistory")}</h2>
         <div className="mt-4 grid gap-3">
           {logs.map((log) => (
-            <div key={log._id} className="rounded-[22px] bg-white/80 p-4">
+            <div key={log._id} className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <p className="font-bold">{log.action}</p>
               <p className="text-sm text-black/70">
                 {log.points_awarded > 0 ? "+" : ""}
@@ -99,10 +158,11 @@ export default function ProfilePage() {
               <p className="text-xs text-black/55">{new Date(log.created_at).toLocaleString()}</p>
             </div>
           ))}
+          {logs.length === 0 ? <p className="text-sm text-black/60">{t("profile.noLogs")}</p> : null}
         </div>
       </section>
 
       {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-    </>
+    </MobileLayout>
   );
 }

@@ -17,7 +17,7 @@ export function AccessibleToggle<T extends string>({
   label: string;
 }) {
   return (
-    <div className="card-surface rounded-[28px] p-2" role="group" aria-label={label}>
+    <div className="rounded-[28px] bg-black/[0.04] p-2" role="group" aria-label={label}>
       <div className="grid grid-cols-2 gap-2">
         {options.map((option) => {
           const active = option.value === value;
@@ -26,8 +26,10 @@ export function AccessibleToggle<T extends string>({
               key={option.value}
               type="button"
               onClick={() => onChange(option.value)}
-              className={`touch-target rounded-2xl px-4 py-4 text-base font-bold transition ${
-                active ? "bg-black text-white" : "bg-white/70 text-black"
+              className={`touch-target rounded-[24px] px-4 py-4 text-base font-black tracking-tight transition ${
+                active
+                  ? "bg-black text-white shadow-[0_14px_28px_rgba(17,17,17,0.18)]"
+                  : "bg-white/88 text-black"
               }`}
               aria-pressed={active}
             >

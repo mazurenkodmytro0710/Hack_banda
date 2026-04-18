@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getSession, forbidden, unauthorized } from "@/lib/auth";
+import { forbidden, getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { HelperStatus } from "@/models/Helper";
 import { User } from "@/models/User";
 import { helperPingSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
     if (session.role !== "HELPER") return forbidden();
 

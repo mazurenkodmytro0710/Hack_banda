@@ -10,15 +10,22 @@ export default function HelperMap({
   requests,
   helpers,
   activeRequest,
+  className,
 }: {
   center: { lat: number; lng: number };
   requests: HelpRequestDTO[];
   helpers: HelperPresenceDTO[];
   activeRequest?: HelpRequestDTO | null;
+  /** Container size override – pass "h-full w-full" for full-screen use */
+  className?: string;
 }) {
   return (
-    <OpenArmMapContainer center={center}>
-      <CircleMarker center={[center.lat, center.lng]} radius={11} pathOptions={{ color: "#111111", fillColor: "#ffd700", fillOpacity: 1 }}>
+    <OpenArmMapContainer center={center} className={className}>
+      <CircleMarker
+        center={[center.lat, center.lng]}
+        radius={11}
+        pathOptions={{ color: "#111111", fillColor: "#ffd700", fillOpacity: 1 }}
+      >
         <Popup>Ваше місце</Popup>
       </CircleMarker>
 
@@ -36,7 +43,10 @@ export default function HelperMap({
       {helpers.map((helper) => (
         <CircleMarker
           key={helper._id}
-          center={[helper.current_location.coordinates[1], helper.current_location.coordinates[0]]}
+          center={[
+            helper.current_location.coordinates[1],
+            helper.current_location.coordinates[0],
+          ]}
           radius={9}
           pathOptions={{ color: "#ffffff", fillColor: "#00cc66", fillOpacity: 1 }}
         >

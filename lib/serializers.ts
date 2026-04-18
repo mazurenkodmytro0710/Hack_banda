@@ -14,6 +14,7 @@ export function serializeUser(user: UserDoc) {
     phone: user.phone,
     karma_points: user.karma_points,
     level: user.level,
+    language_preference: user.language_preference,
     accessibility_notes: user.accessibility_notes,
   };
 }

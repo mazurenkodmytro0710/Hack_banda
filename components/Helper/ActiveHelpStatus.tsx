@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { HelpRequestDTO } from "@/lib/types";
 
 export function ActiveHelpStatus({
@@ -16,6 +17,14 @@ export function ActiveHelpStatus({
         <p>Requester: {request.counterparty_name ?? request.requester_name}</p>
         <p>Статус: {request.status}</p>
         <p>Орієнтовно: {request.estimated_duration ?? 30} хв</p>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <Link
+          href={`/chat/${request._id}`}
+          className="touch-target rounded-2xl bg-black px-4 py-3 text-base font-bold text-white"
+        >
+          💬 Chat
+        </Link>
       </div>
     </section>
   );

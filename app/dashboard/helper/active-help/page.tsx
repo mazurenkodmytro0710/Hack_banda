@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SubPageLayout } from "@/components/Layout/SubPageLayout";
 import { ActiveHelpStatus } from "@/components/Helper/ActiveHelpStatus";
 import { NavigationCard } from "@/components/Helper/NavigationCard";
 import { getUserLocation, distanceMetres } from "@/lib/geolocation";
@@ -48,7 +49,7 @@ export default function ActiveHelpPage() {
   }, [router]);
 
   return (
-    <>
+    <SubPageLayout backHref="/dashboard/helper" backLabel="← Карта">
       <section className="card-surface rounded-[32px] p-5">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Active Help</p>
         <h1 className="mt-2 text-3xl font-black">Поточна допомога</h1>
@@ -61,6 +62,6 @@ export default function ActiveHelpPage() {
         </div>
       ) : null}
       {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-    </>
+    </SubPageLayout>
   );
 }

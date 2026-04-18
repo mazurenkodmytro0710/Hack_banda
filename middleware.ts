@@ -1,7 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { DEFAULT_LOCALE } from "@/lib/i18n/dictionaries";
+import { getLocaleFromPath, localizePath } from "@/lib/i18n/locale";
 
-const PROTECTED = ["/dashboard", "/profile"];
+const PROTECTED_PREFIXES = ["/profile", "/settings", "/chat"];
+
+function isPublicAsset(pathname: string) {
+  return (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/public") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.json" ||
+    pathname.includes(".")
+  );
+}
 
 async function verify(token: string): Promise<{ role?: string; sub?: string } | null> {
   try {
@@ -15,7 +29,26 @@ async function verify(token: string): Promise<{ role?: string; sub?: string } | 
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const needsAuth = PROTECTED.some((p) => pathname.startsWith(p));
+
+  if (isPublicAsset(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/dashboard")) {
+    return NextResponse.next();
+  }
+
+  const routeLocale = getLocaleFromPath(pathname);
+  if (!routeLocale) {
+    const url = req.nextUrl.clone();
+    url.pathname = localizePath(DEFAULT_LOCALE, pathname);
+    return NextResponse.redirect(url);
+  }
+
+  const localizedPath = pathname.slice(`/${routeLocale}`.length) || "/";
+  const needsAuth = PROTECTED_PREFIXES.some(
+    (prefix) => localizedPath === prefix || localizedPath.startsWith(`${prefix}/`)
+  );
   if (!needsAuth) return NextResponse.next();
 
   const token = req.cookies.get("openarm_session")?.value;
@@ -23,19 +56,7 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     const url = req.nextUrl.clone();
-    url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Role guard: /dashboard/requester only for REQUESTER, etc.
-  if (pathname.startsWith("/dashboard/requester") && session.role !== "REQUESTER") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/dashboard/helper";
-    return NextResponse.redirect(url);
-  }
-  if (pathname.startsWith("/dashboard/helper") && session.role !== "HELPER") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/dashboard/requester";
+    url.pathname = `/${routeLocale}/auth/login`;
     return NextResponse.redirect(url);
   }
 
@@ -43,5 +64,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

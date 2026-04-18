@@ -3,253 +3,258 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActiveHelpStatus } from "@/components/Helper/ActiveHelpStatus";
-import { CompleteButton } from "@/components/Helper/CompleteButton";
-import { NavigationCard } from "@/components/Helper/NavigationCard";
-import { RequestsList } from "@/components/Helper/RequestsList";
-import { KarmaDisplay } from "@/components/Common/KarmaDisplay";
+import { HelperBottomSheet } from "@/components/Helper/HelperBottomSheet";
+import { BurgerMenu } from "@/components/Common/BurgerMenu";
 import { getUserLocation, distanceMetres } from "@/lib/geolocation";
-import { etaMinutes } from "@/lib/maps";
 import { COMPLETION_DISTANCE_METRES, KOSICE_DEFAULT } from "@/lib/constants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useLocalePath } from "@/lib/i18n/useLocalePath";
 import type { HelpRequestDTO, HelperPresenceDTO, PublicUser } from "@/lib/types";
 
 const HelperMap = dynamic(() => import("@/components/Map/HelperMap"), {
   ssr: false,
-  loading: () => <div className="card-surface h-[320px] rounded-[28px] p-4">Завантажую мапу...</div>,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-white/50">
+      <span className="text-black/50">Завантажую мапу…</span>
+    </div>
+  ),
 });
 
-type RequestListItem = HelpRequestDTO & {
-  counterparty_name?: string | null;
-};
+type RequestListItem = HelpRequestDTO & { counterparty_name?: string | null };
+
+async function readJson<T>(response: Response): Promise<T | null> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+  if (!text || !contentType.includes("application/json")) return null;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
 
 export default function HelperDashboardPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { href } = useLocalePath();
   const [me, setMe] = useState<PublicUser | null>(null);
   const [coords, setCoords] = useState({ lat: KOSICE_DEFAULT.lat, lng: KOSICE_DEFAULT.lng });
+  const [locationLabel, setLocationLabel] = useState(t("common.locationPending"));
+  const [isOnline, setIsOnline] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<HelpRequestDTO[]>([]);
   const [helperMarkers, setHelperMarkers] = useState<HelperPresenceDTO[]>([]);
   const [myRequests, setMyRequests] = useState<RequestListItem[]>([]);
-  const [error, setError] = useState("");
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+
   const activeRequest = useMemo(
-    () => myRequests.find((request) => request.status === "in_progress") ?? null,
+    () => myRequests.find((r) => r.status === "in_progress") ?? null,
     [myRequests]
   );
 
-  const refreshStaticData = useCallback(async (lat: number, lng: number) => {
-    const [meRes, myRequestsRes, helpersRes] = await Promise.all([
-      fetch("/api/auth/me", { cache: "no-store" }),
-      fetch("/api/requests/mine?status=in_progress,completed", { cache: "no-store" }),
-      fetch(`/api/helpers/nearby?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
-    ]);
+  const refreshData = useCallback(
+    async (lat: number, lng: number) => {
+      const [meRes, myReqRes, helpersRes] = await Promise.all([
+        fetch("/api/auth/me", { cache: "no-store" }),
+        fetch("/api/requests/mine?status=in_progress,completed", { cache: "no-store" }),
+        fetch(`/api/helpers/nearby?lat=${lat}&lng=${lng}`, { cache: "no-store" }),
+      ]);
 
-    const meData = await meRes.json();
-    if (!meRes.ok || !meData.user) {
-      router.replace("/auth/login");
-      return;
-    }
+      const meData = await readJson<{ user?: PublicUser | null }>(meRes);
+      if (meRes.status === 401 || meRes.status === 403) {
+        router.replace(href("/auth/login"));
+        return;
+      }
+      if (!meRes.ok || !meData?.user) return;
 
-    const myRequestsData = await myRequestsRes.json();
-    const helpersData = await helpersRes.json();
-    setMe(meData.user as PublicUser);
-    setMyRequests((myRequestsData.requests ?? []) as RequestListItem[]);
-    setHelperMarkers((helpersData.helpers ?? []) as HelperPresenceDTO[]);
-  }, [router]);
+      const myReqData = await readJson<{ requests?: RequestListItem[] }>(myReqRes);
+      const helpersData = await readJson<{ helpers?: HelperPresenceDTO[] }>(helpersRes);
 
+      setMe(meData.user as PublicUser);
+      setMyRequests((myReqData?.requests ?? []) as RequestListItem[]);
+      setHelperMarkers((helpersData?.helpers ?? []) as HelperPresenceDTO[]);
+    },
+    [href, router]
+  );
+
+  // Boot
   useEffect(() => {
     let cancelled = false;
-
-    const boot = async () => {
+    (async () => {
       try {
-        const nextCoords = await getUserLocation();
+        const loc = await getUserLocation();
         if (cancelled) return;
-        setCoords({ lat: nextCoords.lat, lng: nextCoords.lng });
-        await refreshStaticData(nextCoords.lat, nextCoords.lng);
+        setCoords({ lat: loc.lat, lng: loc.lng });
+        setLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
+        await refreshData(loc.lat, loc.lng);
       } catch {
-        if (cancelled) return;
-        setError("Не вдалося запустити helper dashboard.");
+        if (!cancelled) await refreshData(KOSICE_DEFAULT.lat, KOSICE_DEFAULT.lng);
       }
-    };
+    })();
+    return () => { cancelled = true; };
+  }, [refreshData, t]);
 
-    void boot();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshStaticData]);
-
+  // SSE for nearby pending requests
   useEffect(() => {
-    const source = new EventSource(`/api/stream/requests?lat=${coords.lat}&lng=${coords.lng}`);
-
-    source.onmessage = (event) => {
-      setPendingRequests(JSON.parse(event.data) as HelpRequestDTO[]);
-    };
-    source.onerror = () => {
-      source.close();
-    };
-
-    return () => source.close();
+    const es = new EventSource(
+      `/api/stream/requests?lat=${coords.lat}&lng=${coords.lng}`
+    );
+    es.onmessage = (evt) => setPendingRequests(JSON.parse(evt.data) as HelpRequestDTO[]);
+    es.onerror = () => es.close();
+    return () => es.close();
   }, [coords.lat, coords.lng]);
 
+  // Presence ping every 10s while mounted
   useEffect(() => {
-    const syncPresence = async () => {
-      const nextCoords = await getUserLocation();
-      setCoords({ lat: nextCoords.lat, lng: nextCoords.lng });
-
-      await fetch("/api/helpers/ping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat: nextCoords.lat,
-          lng: nextCoords.lng,
-          current_request_id: activeRequest?._id ?? null,
-          is_online: true,
-        }),
-      });
-
-      await refreshStaticData(nextCoords.lat, nextCoords.lng);
+    const ping = async () => {
+      try {
+        const loc = await getUserLocation();
+        setCoords({ lat: loc.lat, lng: loc.lng });
+        await fetch("/api/helpers/ping", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat: loc.lat,
+            lng: loc.lng,
+            current_request_id: activeRequest?._id ?? null,
+            is_online: isOnline,
+          }),
+        });
+        await refreshData(loc.lat, loc.lng);
+      } catch { /* ignore */ }
     };
-
-    void syncPresence();
-    const interval = setInterval(() => {
-      void syncPresence();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [activeRequest?._id, refreshStaticData]);
+    void ping();
+    const id = setInterval(() => void ping(), 10_000);
+    return () => clearInterval(id);
+  }, [activeRequest?._id, isOnline, refreshData]);
 
   const playNotification = async (text: string) => {
-    const response = await fetch("/api/voice/generate-audio", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-
-    if (response.status !== 200) return;
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
     try {
-      await audio.play();
-    } finally {
-      audio.addEventListener(
-        "ended",
-        () => {
-          URL.revokeObjectURL(url);
-        },
-        { once: true }
-      );
-    }
+      const res = await fetch("/api/voice/generate-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play().catch(() => undefined);
+    } catch { /* silent */ }
   };
 
   const acceptRequest = async (requestId: string) => {
-    const response = await fetch("/api/requests/accept", {
+    const res = await fetch("/api/requests/accept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ request_id: requestId }),
     });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error ?? "Не вдалося прийняти запит.");
-      return;
-    }
-
-    const acceptedRequest = data.request as HelpRequestDTO;
-    setMyRequests((current) => [acceptedRequest as RequestListItem, ...current]);
-    await playNotification(`Поруч потрібна допомога: ${acceptedRequest.title}`);
-    await refreshStaticData(coords.lat, coords.lng);
+    const data = await readJson<{ request?: HelpRequestDTO }>(res);
+    if (!res.ok || !data?.request) return;
+    setMyRequests((p) => [data.request as RequestListItem, ...p]);
+    void playNotification(`Поруч потрібна допомога: ${(data.request as HelpRequestDTO).title}`);
+    await refreshData(coords.lat, coords.lng);
+    router.push(href(`/chat/${requestId}`));
   };
 
   const completeRequest = async () => {
     if (!activeRequest) return;
-
-    const response = await fetch("/api/requests/complete", {
+    await fetch("/api/requests/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ request_id: activeRequest._id }),
     });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error ?? "Не вдалося завершити запит.");
-      return;
-    }
-
-    await refreshStaticData(coords.lat, coords.lng);
+    await refreshData(coords.lat, coords.lng);
   };
 
   const distanceToActive = activeRequest
     ? distanceMetres(
-        coords.lat,
-        coords.lng,
+        coords.lat, coords.lng,
         activeRequest.location.coordinates[1],
         activeRequest.location.coordinates[0]
       )
     : 0;
+
   const canComplete = Boolean(activeRequest) && distanceToActive <= COMPLETION_DISTANCE_METRES;
-  const visiblePendingRequests = activeRequest
-    ? pendingRequests.filter((request) => request._id !== activeRequest._id)
+  const visiblePending = activeRequest
+    ? pendingRequests.filter((r) => r._id !== activeRequest._id)
     : pendingRequests;
 
+  const sheetH = sheetExpanded ? "h-[80dvh]" : "h-[30dvh] min-h-[230px]";
+
+  const topBarHeight = 92;
+  const bottomOffset = sheetExpanded ? "80dvh" : "30dvh";
+
   return (
-    <>
-      <section className="rounded-[34px] bg-black px-5 py-6 text-white">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/68">Helper</p>
-        <h1 className="mt-2 text-3xl font-black">Побачити запит і швидко відгукнутися</h1>
-        <p className="mt-3 text-white/78">
-          Усе під рукою: live requests, straight-line route, completion radius і voice notification.
-        </p>
-      </section>
-
-      {me ? <KarmaDisplay points={me.karma_points} level={me.level} /> : null}
-
-      {activeRequest ? <ActiveHelpStatus request={activeRequest} /> : null}
-      {activeRequest ? (
-        <NavigationCard
-          distanceMetres={distanceToActive}
-          etaMinutes={etaMinutes(distanceToActive / 1000)}
-        />
-      ) : null}
-      {activeRequest ? (
-        <CompleteButton
-          enabled={canComplete}
-          onComplete={completeRequest}
-          distanceMetres={distanceToActive}
-        />
-      ) : null}
-
-      <section className="card-surface rounded-[32px] p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">Live Map</p>
-            <h2 className="mt-2 text-2xl font-black">Запити, інші helpers і маршрут</h2>
+    <div className="relative h-[100dvh] w-full overflow-hidden">
+      {/* ── TOP BAR ── */}
+      <div className="absolute left-0 right-0 top-0 z-[50] px-4 pb-3 pt-safe-top">
+        <div className="flex items-center gap-3 rounded-[28px] bg-white/92 px-3 py-3 shadow-[0_18px_40px_rgba(17,17,17,0.16)] backdrop-blur">
+          <div className="flex flex-1 items-center gap-3">
+            <BurgerMenu />
           </div>
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-black">
-            {visiblePendingRequests.length} open
-          </span>
+          <div className="flex-1 text-center">
+            <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-black/10 px-4 py-2 text-xs font-bold text-black shadow sm:text-sm">
+              📍 {locationLabel}
+            </span>
+          </div>
+          <div className="flex flex-1 justify-end gap-2">
+            {me && (
+              <span className="rounded-full bg-accessible-yellow px-3 py-2 text-xs font-bold text-black shadow">
+                ⭐ {me.karma_points}
+              </span>
+            )}
+            <span
+              className={`rounded-full px-3 py-2 text-xs font-bold text-black shadow ${
+                isOnline ? "bg-accessible-lime" : "bg-black/10"
+              }`}
+            >
+              {isOnline ? t("common.online") : t("common.offline")}
+            </span>
+          </div>
         </div>
+      </div>
+
+      {/* ── MAP LAYER ── */}
+      <div
+        className="absolute inset-x-0 transition-all duration-300"
+        style={{ top: `${topBarHeight}px`, bottom: bottomOffset }}
+      >
         <HelperMap
           center={coords}
-          requests={visiblePendingRequests}
+          requests={visiblePending}
           helpers={helperMarkers}
           activeRequest={activeRequest}
+          className="h-full w-full"
         />
-      </section>
+      </div>
 
-      <section className="grid gap-3">
-        <div className="card-surface rounded-[28px] p-4">
-          <h2 className="text-2xl font-black">Поруч потрібна допомога</h2>
-          <p className="mt-2 text-black/70">
-            Нові pending-запити оновлюються в реальному часі через SSE.
-          </p>
-        </div>
-        <RequestsList
-          requests={visiblePendingRequests}
+      {/* ── BOTTOM SHEET ── */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-[40] card-surface rounded-t-[32px] shadow-2xl transition-all duration-300 ${sheetH}`}
+      >
+        {/* Drag handle */}
+        <button
+          type="button"
+          className="mx-auto mt-3 mb-1 flex h-6 w-full items-center justify-center"
+          aria-label={sheetExpanded ? t("common.close") : t("common.menu")}
+          onClick={() => setSheetExpanded((p) => !p)}
+        >
+          <div className="h-1.5 w-12 rounded-full bg-black/20" />
+        </button>
+
+        <HelperBottomSheet
+          isOnline={isOnline}
+          onToggleOnline={() => setIsOnline((p) => !p)}
+          requests={visiblePending}
+          activeRequest={activeRequest}
+          distanceMetres={distanceToActive}
+          canComplete={canComplete}
           onAccept={acceptRequest}
-          busy={Boolean(activeRequest)}
+          onComplete={completeRequest}
         />
-      </section>
-
-      {error ? <p className="text-sm font-semibold text-accessible-red">{error}</p> : null}
-    </>
+      </div>
+    </div>
   );
 }

@@ -4,14 +4,14 @@ import { HelpRequest } from "@/models/Request";
 import { HelperStatus } from "@/models/Helper";
 import { KarmaLog } from "@/models/KarmaLog";
 import { User } from "@/models/User";
-import { getSession, unauthorized } from "@/lib/auth";
+import { getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { KARMA_REWARDS } from "@/lib/types";
 import { serializeRequest } from "@/lib/serializers";
 import { requestIdSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
 
     const body = await req.json();

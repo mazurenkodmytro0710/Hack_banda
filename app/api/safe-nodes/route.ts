@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    const [helpersNearby, nodes] = await Promise.all([
-      HelperStatus.countDocuments({
+    const [helperNearby, nodes] = await Promise.all([
+      HelperStatus.findOne({
         is_online: true,
         current_location: {
           $near: {
@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
             $maxDistance: radius * 2,
           },
         },
-      }),
+      })
+        .select("_id")
+        .lean()
+        .exec(),
       SafeNode.find({
         is_active: true,
         location: {
@@ -39,9 +42,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       type: "safe_nodes",
-      show_fallback: helpersNearby === 0,
+      show_fallback: !helperNearby,
       message:
-        helpersNearby === 0
+        !helperNearby
           ? "Немає волонтерів поруч, але ці місця готові допомогти"
           : "Поруч є партнерські безпечні точки",
       nodes: nodes.map(serializeSafeNode),

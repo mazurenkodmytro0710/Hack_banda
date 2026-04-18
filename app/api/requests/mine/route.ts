@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getSession, unauthorized } from "@/lib/auth";
+import { getSessionFromRequest, unauthorized } from "@/lib/auth";
 import { HelpRequest } from "@/models/Request";
 import { User } from "@/models/User";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSessionFromRequest(req);
     if (!session) return unauthorized();
 
     const { searchParams } = new URL(req.url);
