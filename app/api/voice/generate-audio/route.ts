@@ -11,6 +11,9 @@ export async function POST(req: NextRequest) {
 
     console.log("[TTS_API] Generating speech for:", text.slice(0, 50));
     const audio = await generateSpeech(text);
+    if (!audio || audio.byteLength === 0) {
+      return new NextResponse(null, { status: 204 });
+    }
 
     return new NextResponse(audio, {
       status: 200,

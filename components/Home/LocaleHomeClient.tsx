@@ -50,21 +50,21 @@ export function LocaleHomeClient({ locale }: { locale: Locale }) {
   const t = (key: string) => tFor(locale, key);
 
   return (
-    <MobileLayout appShell className="justify-between overflow-hidden">
+    <MobileLayout appShell className="app-screen justify-between">
       <TopSafeArea />
-      <section className="animate-rise overflow-hidden rounded-[40px] border border-black/8 bg-[linear-gradient(145deg,#111111_0%,#050505_60%,#171717_100%)] px-5 py-5 text-white shadow-[0_28px_72px_rgba(17,17,17,0.22)]">
+      <section className="animate-rise overflow-hidden rounded-[30px] border border-black/8 bg-[linear-gradient(160deg,#111111_0%,#050505_58%,#1b1b1b_100%)] px-5 py-4 text-white shadow-[0_22px_48px_rgba(17,17,17,0.16)]">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-white/65">
             {t("app.name")}
           </p>
-          <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">
+          <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">
             {t("landing.appBadge")}
           </span>
         </div>
-        <h1 className="mt-4 max-w-[11ch] text-[2.95rem] font-black leading-[0.92] tracking-[-0.045em] sm:text-6xl">
+        <h1 className="mt-5 max-w-[8.5ch] text-[1.95rem] font-black leading-[0.92] tracking-[-0.055em] sm:text-6xl">
           {t("landing.heroTitle")}
         </h1>
-        <p className="mt-4 max-w-[24rem] text-[15px] leading-6 text-white/74 sm:text-base">
+        <p className="mt-3 max-w-[21rem] text-[13px] leading-6 text-white/70 sm:text-base">
           {t("landing.heroBody")}
         </p>
 
@@ -75,62 +75,78 @@ export function LocaleHomeClient({ locale }: { locale: Locale }) {
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/55">
                   {user.role}
                 </p>
-                <p className="mt-2 text-2xl font-black">{user.name}</p>
-                <p className="mt-1 text-sm text-white/70">{user.email}</p>
+                <p className="mt-2 text-xl font-black">{user.name}</p>
+                <p className="mt-1 truncate text-sm text-white/70">{user.email}</p>
               </div>
               <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white/80">
                 {t("landing.signedIn")}
               </span>
             </div>
             <Link href="/dashboard" className="mt-4 block">
-              <AccessibleButton className="w-full bg-accessible-yellow text-black hover:brightness-95">
+              <AccessibleButton className="w-full rounded-[22px] bg-accessible-yellow text-black hover:brightness-95">
                 {t("landing.openMap")}
               </AccessibleButton>
             </Link>
           </div>
         ) : (
-          <div className="mt-5 flex items-center gap-2 text-sm text-white/65">
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickMap")}</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickChat")}</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 font-bold">{t("landing.quickVoice")}</span>
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
+            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1.5">{t("landing.quickMap")}</span>
+            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1.5">{t("landing.quickChat")}</span>
+            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1.5">{t("landing.quickVoice")}</span>
           </div>
         )}
       </section>
 
-      <section className="grid min-h-0 gap-3 md:grid-cols-2">
+      <section className="grid min-h-0 gap-3">
         <Link href={`/${locale}/auth/register?role=REQUESTER`} className="block">
-          <div className="card-surface rounded-[30px] p-4 transition hover:-translate-y-0.5">
+          <div className="card-surface rounded-[24px] p-4 transition hover:-translate-y-0.5">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">{t("landing.requesterLabel")}</p>
-              <span className="rounded-full bg-accessible-red/10 px-3 py-1 text-xs font-bold text-accessible-red">
+              <span className="rounded-full border border-accessible-red/10 bg-accessible-red/8 px-3 py-1 text-xs font-bold text-accessible-red">
                 {t("landing.badgeNeedHelp")}
               </span>
             </div>
-            <h2 className="mt-2 text-xl font-black">{t("auth.needHelpRole")}</h2>
-            <p className="mt-2 text-sm text-black/70">{t("landing.requesterCard")}</p>
+            <div className="mt-3 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-accessible-red/10 text-[1.45rem]">
+                🆘
+              </div>
+              <div>
+                <h2 className="text-[1.28rem] font-black leading-none tracking-tight">{t("auth.needHelpRole")}</h2>
+                <p className="mt-2 text-[14px] leading-6 text-black/68">{t("landing.requesterCard")}</p>
+              </div>
+            </div>
           </div>
         </Link>
         <Link href={`/${locale}/auth/register?role=HELPER`} className="block">
-          <div className="card-surface rounded-[30px] p-4 transition hover:-translate-y-0.5">
+          <div className="card-surface rounded-[24px] p-4 transition hover:-translate-y-0.5">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/55">{t("landing.helperLabel")}</p>
-              <span className="rounded-full bg-accessible-lime/15 px-3 py-1 text-xs font-bold text-[#0d7a3d]">
+              <span className="rounded-full border border-[#0d7a3d]/10 bg-accessible-lime/12 px-3 py-1 text-xs font-bold text-[#0d7a3d]">
                 {t("landing.badgeVolunteer")}
               </span>
             </div>
-            <h2 className="mt-2 text-xl font-black">{t("auth.wantHelpRole")}</h2>
-            <p className="mt-2 text-sm text-black/70">{t("landing.helperCard")}</p>
+            <div className="mt-3 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-accessible-lime/16 text-[1.45rem]">
+                🤝
+              </div>
+              <div>
+                <h2 className="text-[1.28rem] font-black leading-none tracking-tight">{t("auth.wantHelpRole")}</h2>
+                <p className="mt-2 text-[14px] leading-6 text-black/68">{t("landing.helperCard")}</p>
+              </div>
+            </div>
           </div>
         </Link>
       </section>
 
-      <section className="grid gap-3 pb-2">
-        <Link href={`/${locale}/auth/register?role=REQUESTER`}>
-          <AccessibleButton className="w-full">{t("common.createAccount")}</AccessibleButton>
-        </Link>
+      <section className="grid gap-3 pb-2 pt-0.5">
         <Link href={`/${locale}/auth/login`}>
-          <AccessibleButton tone="secondary" className="w-full">
+          <AccessibleButton className="w-full rounded-[20px] shadow-[0_14px_28px_rgba(17,17,17,0.14)]">
             {t("common.login")}
+          </AccessibleButton>
+        </Link>
+        <Link href={`/${locale}/auth/register?role=REQUESTER`}>
+          <AccessibleButton tone="secondary" className="w-full rounded-[20px] bg-white/96">
+            {t("common.createAccount")}
           </AccessibleButton>
         </Link>
       </section>

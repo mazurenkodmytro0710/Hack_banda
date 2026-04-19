@@ -6,7 +6,7 @@
 @import "./animations.css";
 
 :root {
-  color-scheme: light;
+  color-scheme: light only;
   --openarm-bg: #f6efe1;
   --openarm-surface: rgba(255, 255, 255, 0.92);
   --openarm-surface-strong: #ffffff;
@@ -40,6 +40,7 @@ body {
     system-ui,
     sans-serif;
   background: transparent;
+  accent-color: var(--openarm-yellow);
 }
 
 * {
@@ -56,6 +57,7 @@ input,
 textarea,
 select {
   font: inherit;
+  color-scheme: light;
 }
 
 input,
@@ -67,6 +69,13 @@ select {
   background: rgba(255, 255, 255, 0.92);
   color: var(--openarm-text);
   padding: 0.95rem 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(17, 17, 17, 0.42);
 }
 
 main {
@@ -93,32 +102,12 @@ main {
   box-shadow: 0 16px 40px rgba(17, 17, 17, 0.08);
 }
 
-.pt-safe-top {
-  padding-top: max(0.75rem, env(safe-area-inset-top));
+.app-screen {
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --openarm-bg: #101010;
-    --openarm-surface: rgba(18, 18, 18, 0.9);
-    --openarm-surface-strong: #171717;
-    --openarm-border: rgba(255, 255, 255, 0.12);
-    --openarm-text: #f6f6f6;
-    --openarm-muted: #c7c7c7;
-  }
-
-  html {
-    background:
-      radial-gradient(circle at top left, rgba(255, 215, 0, 0.12), transparent 28%),
-      linear-gradient(180deg, #151515 0%, #101010 55%, #0f1713 100%);
-  }
-
-  input,
-  textarea,
-  select {
-    border-color: rgba(255, 255, 255, 0.16);
-    background: rgba(24, 24, 24, 0.92);
-    color: var(--openarm-text);
-  }
+.pt-safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
 }

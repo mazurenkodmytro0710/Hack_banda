@@ -17,7 +17,13 @@ export function MobileLayout({
           : "min-h-[100svh] md:min-h-screen"
       }`}
     >
-      <div className={`flex min-h-0 flex-1 flex-col gap-4 py-3 sm:py-4 ${className}`}>{children}</div>
+      <div
+        className={`flex min-h-0 flex-1 flex-col gap-4 py-3 sm:py-4 ${
+          appShell ? "overflow-y-auto overscroll-y-contain" : ""
+        } ${className}`}
+      >
+        {children}
+      </div>
     </main>
   );
 }
