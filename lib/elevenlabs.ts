@@ -1,10 +1,15 @@
-// Text-to-Speech via ElevenLabs. Falls back silently if API key missing or call fails.
+// Text-to-Speech via ElevenLabs. Falls back to browser speechSynthesis if unavailable.
 export async function generateSpeech(text: string): Promise<ArrayBuffer | null> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  if (!apiKey || !voiceId) return null;
+
+  if (!apiKey || !voiceId) {
+    console.log("[ELEVENLABS] Credentials missing - using browser TTS fallback");
+    return null;
+  }
 
   try {
+    console.log("[ELEVENLABS] Calling API with voice:", voiceId);
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: "POST",
       headers: {
@@ -19,9 +24,17 @@ export async function generateSpeech(text: string): Promise<ArrayBuffer | null> 
       }),
     });
 
-    if (!res.ok) return null;
-    return await res.arrayBuffer();
-  } catch {
+    if (!res.ok) {
+      const error = await res.text();
+      console.error("[ELEVENLABS] API error:", res.status, error);
+      return null;
+    }
+
+    const buffer = await res.arrayBuffer();
+    console.log("[ELEVENLABS] Got audio:", buffer.byteLength, "bytes");
+    return buffer;
+  } catch (err) {
+    console.error("[ELEVENLABS] Error:", err instanceof Error ? err.message : String(err));
     return null;
   }
 }

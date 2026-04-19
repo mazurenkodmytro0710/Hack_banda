@@ -400,7 +400,7 @@ function ActiveSheet({
         <p className="text-sm font-bold text-accessible-lime">✅ {t("requester.acceptedTitle")}</p>
         <p className="mt-1 text-lg font-black">{request.title}</p>
       </div>
-      {showChat && !requestLooksBlind ? (
+      {showChat ? (
         <Link
           href={href(`/chat/${request._id}`)}
           className="touch-target flex items-center justify-center gap-2 rounded-[24px] bg-black text-xl font-black text-white"
@@ -516,7 +516,7 @@ export function RequesterBottomSheet({
         <ActiveSheet
           request={activeRequest}
           busy={busy}
-          showChat={!isBlindRequester}
+          showChat={true}
           onComplete={() => wrap(() => onComplete(activeRequest._id))}
           onCancel={() => wrap(() => onCancel(activeRequest._id))}
         />

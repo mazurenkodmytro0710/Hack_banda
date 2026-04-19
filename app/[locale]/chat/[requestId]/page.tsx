@@ -92,10 +92,6 @@ export default async function LocalizedChatPage({
     ? isCurrentUserBlind
     : Boolean(requester?.is_blind) || /(blind|сліп|незр|nevid)/.test(requesterAccessibilityNotes);
 
-  if (isCurrentUserRequester && requesterIsBlind) {
-    redirect(`/${locale}/dashboard/requester`);
-  }
-
   return (
     <main className="mx-auto flex h-[100dvh] max-w-lg flex-col px-3 pb-3 pt-3">
       <div className="card-surface sticky top-3 z-30 mb-3 rounded-[30px] px-4 py-3">

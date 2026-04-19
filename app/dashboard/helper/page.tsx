@@ -154,7 +154,7 @@ export default function HelperDashboardPage() {
     const data = await readJson<{ request?: HelpRequestDTO }>(res);
     if (!res.ok || !data?.request) return;
     setMyRequests((p) => [data.request as RequestListItem, ...p]);
-    void playNotification(`Поруч потрібна допомога: ${(data.request as HelpRequestDTO).title}`);
+    // Озвучка буде надіслана як системне повідомлення в чат для REQUESTER, якщо він сліпий
     await refreshData(coords.lat, coords.lng);
     router.push(href(`/chat/${requestId}`));
   };

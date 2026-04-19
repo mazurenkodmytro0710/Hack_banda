@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       sender_id: senderId,
       recipient_id: recipientId,
       message: message.trim(),
+      message_type: "text",
     });
 
     return NextResponse.json({

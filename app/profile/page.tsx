@@ -44,8 +44,8 @@ export default function ProfilePage() {
       setLogs((karmaData.logs ?? []) as KarmaLogItem[]);
     };
 
-      void load().catch(() => setError(t("profile.loadFailed")));
-  }, [href, router]);
+    void load().catch(() => setError(t("profile.loadFailed")));
+  }, [href, router, t]);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

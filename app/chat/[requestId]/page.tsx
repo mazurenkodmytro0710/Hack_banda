@@ -57,16 +57,6 @@ export default async function ChatPage({
       : User.findById(requesterId).select("_id name is_blind accessibility_notes").lean(),
   ]);
 
-  const userToReadFor = isCurrentUserRequester ? currentUser : requester;
-
-  const accessibilityNotes =
-    typeof userToReadFor?.accessibility_notes === "string"
-      ? userToReadFor.accessibility_notes.toLowerCase()
-      : "";
-  const shouldAutoRead =
-    Boolean(userToReadFor?.is_blind) ||
-    /(blind|сліп|незр|nevid)/.test(accessibilityNotes);
-
   // Determine if the current user is blind for UI adaptation
   const currentUserAccessibilityNotes =
     typeof currentUser?.accessibility_notes === "string"
@@ -75,6 +65,7 @@ export default async function ChatPage({
   const isCurrentUserBlind =
     Boolean(currentUser?.is_blind) ||
     /(blind|сліп|незр|nevid)/.test(currentUserAccessibilityNotes);
+  const shouldAutoRead = isCurrentUserBlind;
 
   // Determine if requester is blind (for sighted helpers to know)
   const requesterAccessibilityNotes =
@@ -84,10 +75,6 @@ export default async function ChatPage({
   const requesterIsBlind = isCurrentUserRequester
     ? isCurrentUserBlind // if current user is requester, use their blindness status
     : (Boolean(requester?.is_blind) || /(blind|сліп|незр|nevid)/.test(requesterAccessibilityNotes)); // if helper, check requester data
-
-  if (isCurrentUserRequester && requesterIsBlind) {
-    redirect("/dashboard/requester");
-  }
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-lg flex-col px-3 pb-3 pt-3">

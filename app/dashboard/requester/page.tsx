@@ -104,6 +104,13 @@ export default function RequesterDashboardPage() {
   const isBlindRequester =
     Boolean(me?.is_blind) || /(blind|сліп|незр|nevid)/.test(requesterNotes);
 
+  // Автоматичний редирект на чат для сліпої людини коли запит прийнято
+  useEffect(() => {
+    if (activeRequest?.status === "in_progress" && isBlindRequester && me?.is_blind) {
+      router.push(href(`/chat/${activeRequest._id}`));
+    }
+  }, [activeRequest?._id, activeRequest?.status, isBlindRequester, me?.is_blind, router, href]);
+
   const completeRequest = async (requestId: string) => {
     await fetch("/api/requests/complete", {
       method: "POST",

@@ -49,6 +49,7 @@ export function ChatContainer({
 
     ttsPlayingRef.current = true;
     const text = ttsQueueRef.current.shift()!;
+    console.log("[QUEUE] Speaking:", text.slice(0, 50));
 
     try {
       await speakViaElevenLabs(text);
@@ -61,6 +62,7 @@ export function ChatContainer({
   }, []);
 
   const enqueueTTS = useCallback((text: string) => {
+    console.log("[ENQUEUE] Adding to TTS queue:", text.slice(0, 50));
     ttsQueueRef.current.push(text);
     void processQueue();
   }, [processQueue]);
@@ -68,13 +70,16 @@ export function ChatContainer({
   const mergeIncomingMessages = useCallback(
     (batch: ChatMessage[]) => {
       if (!batch.length) return;
+      console.log("[MSG] Received batch:", batch.length, "messages");
       setMessages((prev) => {
         const next = [...prev];
         for (const m of batch) {
           if (seenRef.current.has(m._id)) continue;
           seenRef.current.add(m._id);
           next.push(m);
+          console.log("[MSG] Checking:", { type: m.message_type, from: m.sender_id, self: selfId, autoRead: autoReadIncomingText });
           if (autoReadIncomingText && m.sender_id !== selfId && m.message_type === "text") {
+            console.log("[MSG] Adding to TTS:", m.message.slice(0, 50));
             safeVibrate(35);
             enqueueTTS(m.message);
           }
@@ -218,17 +223,21 @@ export function ChatContainer({
 
 async function speakViaElevenLabs(text: string): Promise<void> {
   try {
+    console.log("[TTS] Trying ElevenLabs...");
     const res = await fetch("/api/voice/generate-audio", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {
+      console.log("[TTS] ElevenLabs failed:", res.status, "- falling back to browser");
       await speakViaBrowser(text);
       return;
     }
     const blob = await res.blob();
+    console.log("[TTS] Got blob:", blob.size, "bytes");
     if (!blob.size) {
+      console.log("[TTS] Empty blob - falling back to browser");
       await speakViaBrowser(text);
       return;
     }
@@ -255,20 +264,39 @@ async function speakViaElevenLabs(text: string): Promise<void> {
 }
 
 function speakViaBrowser(text: string): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (!("speechSynthesis" in window)) return Promise.resolve();
+  if (typeof window === "undefined") {
+    console.log("[TTS] No window object");
+    return Promise.resolve();
+  }
+  if (!("speechSynthesis" in window)) {
+    console.log("[TTS] speechSynthesis not available");
+    return Promise.resolve();
+  }
 
   try {
+    console.log("[TTS] Using browser speechSynthesis");
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "uk"; // Ukrainian
 
     return new Promise<void>((resolve) => {
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
+      utterance.onstart = () => console.log("[TTS] Speech started");
+      utterance.onend = () => {
+        console.log("[TTS] Speech ended");
+        resolve();
+      };
+      utterance.onerror = (evt) => {
+        console.error("[TTS] Error:", evt.error);
+        resolve();
+      };
       window.speechSynthesis.speak(utterance);
-      setTimeout(() => resolve(), 30000);
+      setTimeout(() => {
+        console.log("[TTS] Timeout");
+        resolve();
+      }, 30000);
     });
-  } catch {
+  } catch (err) {
+    console.error("[TTS] Exception:", err);
     return Promise.resolve();
   }
 }

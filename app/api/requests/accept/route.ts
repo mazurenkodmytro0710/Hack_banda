@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       request_id: updated._id,
       sender_id: session.sub,
       recipient_id: updated.requester_id,
-      message: `${session.name} accepted your request. Chat is now open.`,
+      message: `${session.name} прийняв твій запит. Чат відкритий.`,
       message_type: "system",
     });
 
